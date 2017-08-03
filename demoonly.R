@@ -20,13 +20,13 @@
 #install.packages("cowplot")
 #install.packages("GGally")
 
-library(MASS)
-library(car)
-library(e1071)
-library(caret)
-library(ggplot2)
-library(cowplot)
-library(caTools)
+# library(MASS)
+# library(car)
+# library(e1071)
+# library(caret)
+# library(ggplot2)
+# library(cowplot)
+# library(caTools)
 
 # Loading 3 files
 churn_data<- read.csv("churn_data.csv", stringsAsFactors = F)
