@@ -112,9 +112,7 @@ type_of <- sapply(employee[,30:527],typeof) # Columns 30 to 527 are converted to
 class_of<- sapply(employee[,30:527],class)  # Columns 30 to 527 are converted to "POSIXt POSIXct"
 
 #-------------------------------------------------------------------------------------------------------------------------------
-
 #                             DATA PREPARATION AND DERIVED METRICS FOR IN TIME AND OUT TIME DATA
-
 #--------------------------------------------------------------------------------------------------------------------------------
 
 #Now that we have successfully treated the date and time, lets aggregate the day wise hours to monthly hours
@@ -166,7 +164,7 @@ setnames(employee1,old=names(employee1[,30:41]),new= paste(rep(month.abb,1),"_ho
 
 #1. The rows and columns are consistent in terms of numbers. There are no missing rows and columns, 
 #   summary rows,misaligned rows,extra rows,missing column name
-
+#--------------------------------------------------------------------------------------------------------------
 #2. Dealing with missing values.
 sum(is.na(employee1)) #there are now 111 NA's in the entire dataframe,lets check which columns contain the NA's
 
@@ -207,3 +205,44 @@ employee1[which(is.na(employee1$TotalWorkingYears)),20] <- 10
 
 #Now that we have imputed all the missing values, lets verify the same
 sum(is.na(employee1)) #0 , implies no missing values
+#------------------------------------------------------------------------------------------------------------------
+
+#3. Dealing with blanks
+employee_blanks <- sapply(employee1, function(x) length(which(x == ""))) # checking for blank "" values
+employee_blanks                #There are no blank values
+
+#-------------------------------------------------------------------------------------------------------------------
+
+#4. Checking for duplicated rows.
+sum(duplicated(employee1$EmployeeID))  #0,There are not duplicate ID's
+
+#-------------------------------------------------------------------------------------------------------------------
+
+#5. Standardising Numbers.
+
+#a. All the observations have the same consistent units
+
+#b Ensuring digits as factors are not numeric,if not converting to factor type variables
+
+str(employee1)
+employee1$Education <- as.factor(employee1$Education)
+employee1$JobLevel <- as.factor(employee1$JobLevel)
+employee1$StockOptionLevel <- as.factor(employee1$StockOptionLevel)
+employee1$JobInvolvement <- as.factor(employee1$JobInvolvement)
+employee1$PerformanceRating <- as.factor(employee1$PerformanceRating)
+
+#c  Checking for outliers and dealing with the same for all continous variables
+
+#getting all the columns which are numeric
+#lets knock off the employee ID ,StandardHours,EmployeeCount as its of no significance to the analysis
+employee1 <- employee1[,-c(1,9,18)]
+
+employee_numeric <- sapply(employee1,function(x)is.numeric(x))
+employee_numeric_df <- employee1[,employee_numeric]
+
+outlier_df <- data.frame(sapply(employee_numeric_df,function(x) quantile(x,seq(0,1,0.01))))
+outlier_df #by inspection of the outlier dataframe, it appears there are no outliers and is within the data range
+
+
+
+
