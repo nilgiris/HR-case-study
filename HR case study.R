@@ -50,6 +50,8 @@ library(ggplot2)
 library(cowplot)
 library(caTools)
 library(lubridate)
+library(grid)
+library(gridExtra)
 
 #Loading the required files for analysis:
 
@@ -256,5 +258,65 @@ summary(employee1) #All the character type variables are converted to factor typ
 employee1 <- employee1[,-which(names(employee1)=="Over18")]
 
 #----------------------------------------------------------------------------------------------------------------------------------------
+#                                 EXPLORATORY DATA ANALYSIS
+#--------------------------------------------------------------------------------------------------------------------------
+
+
+#1. Lets analyze the categorical features in a bar chart grid view as follows:
+
+bar_theme1<- theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), legend.position="none")
+
+# plot_grid(ggplot(employee1, aes(x=BusinessTravel,fill=Attrition))+ geom_bar(), 
+#           ggplot(employee1, aes(x=Department,fill=Attrition))+ geom_bar()+bar_theme1,
+#           ggplot(employee1, aes(x=EducationField,fill=Attrition))+ geom_bar()+bar_theme1,
+#           ggplot(employee1, aes(x=Gender,fill=Attrition))+ geom_bar()+bar_theme1,
+#           ggplot(employee1, aes(x=JobRole,fill=Attrition))+ geom_bar()+bar_theme1,
+#           ggplot(employee1, aes(x=MaritalStatus,fill=Attrition))+ geom_bar()+bar_theme1,
+#           align = "h") 
+
+Businesstravel_plot <- ggplot(employee1, aes(x=BusinessTravel,fill=Attrition))+ geom_bar()
+department_plot <-  ggplot(employee1, aes(x=Department,fill=Attrition))+ geom_bar() 
+educationfield_plot  <-   ggplot(employee1, aes(x=EducationField,fill=Attrition))+ geom_bar()
+gender_plot <- ggplot(employee1, aes(x=Gender,fill=Attrition))+ geom_bar()
+job_role_plot <- ggplot(employee1, aes(x=JobRole,fill=Attrition))+ geom_bar()
+marital_status_plot <- ggplot(employee1, aes(x=MaritalStatus,fill=Attrition))+ geom_bar()
+grid.arrange(Businesstravel_plot,department_plot,educationfield_plot,gender_plot,ncol=2,top = "Fig 1a")        
+grid.arrange(job_role_plot,marital_status_plot,ncol=1,top = "Fig 1b")        
+
+eduPlot <- ggplot(employee1, aes(x=Education,fill=Attrition))+ geom_bar()
+joblevelPlot <- ggplot(employee1, aes(x=JobLevel,fill=Attrition))+ geom_bar()
+stockoptionLevelPlot <- ggplot(employee1, aes(x=StockOptionLevel,fill=Attrition))+ geom_bar()
+EnvironmentSatisfactionplot <-ggplot(employee1, aes(x=EnvironmentSatisfaction,fill=Attrition))+ geom_bar()
+grid.arrange(eduPlot,joblevelPlot,stockoptionLevelPlot,EnvironmentSatisfactionplot ,ncol=2,top = "Fig 1a")
+
+
+
+#Reveals the following insights with respect to Attrition
+#1. High for those who travelled rarely
+#2. High for Research and Development Department
+#3. High for educational fields as Life sciences and Medical
+#4. High for gender male
+#5. High for job roles as Research scientist, Technician and sales
+#6. High for marital status single
+
+
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------
+
+#2. Lets analyze the continous variables using histogram and barcharts
+
+box_theme<- theme(axis.line=element_blank(),axis.title=element_blank(), 
+                  axis.ticks=element_blank(), axis.text=element_blank())
+
+box_theme_y<- theme(axis.line.y=element_blank(),axis.title.y=element_blank(), 
+                    axis.ticks.y=element_blank(), axis.text.y=element_blank(),
+                    legend.position="none")
+
+#For variable Age
+plot_grid(ggplot(employee1, aes(Age))+ geom_histogram(binwidth = 10),
+          ggplot(employee1, aes(x="",y=Age))+ geom_boxplot(width=0.1)+coord_flip()+box_theme, 
+          align = "v",ncol = 1)
+#Median age is around 36 years,maximum density is in the 25 to 35 age group bucket
 
 
