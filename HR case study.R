@@ -152,4 +152,4 @@ employee1 <- cbind(employee1,actuals2)
 
 #rename the generic columns from X1 to X12 with sequence of months from Jan to dec
 library(data.table)
-setnames(employee1,old=names(employee1[,30:41]),new =rep(month.abb,1))
+setnames(employee1,old=names(employee1[,30:41]),new= paste(rep(month.abb,1),"_hours"))
