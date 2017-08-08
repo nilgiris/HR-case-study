@@ -241,8 +241,20 @@ employee_numeric <- sapply(employee1,function(x)is.numeric(x))
 employee_numeric_df <- employee1[,employee_numeric]
 
 outlier_df <- data.frame(sapply(employee_numeric_df,function(x) quantile(x,seq(0,1,0.01))))
-outlier_df #by inspection of the outlier dataframe, it appears there are no outliers and is within the data range
+outlier_df #by inspection of the outlier dataframe and the progression of numbers by quantiles, it appears there are no outliers and is within the data range
 
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+# 6. Converting character type variables to factor type
 
+str(employee1)
+employee_char <- sapply(employee1,is.character)
+employee_char_df <- employee1[,employee_char]
+employee1[,employee_char] <- lapply(employee_char_df,function(x) as.factor(x))
+summary(employee1) #All the character type variables are converted to factor type successfully
+
+#Eliminating the column named "Over18"
+employee1 <- employee1[,-which(names(employee1)=="Over18")]
+
+#----------------------------------------------------------------------------------------------------------------------------------------
 
 
