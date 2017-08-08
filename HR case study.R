@@ -111,6 +111,11 @@ employee[,30:527] <- lapply(employee_date_time,function(x) ymd_hms(x))
 type_of <- sapply(employee[,30:527],typeof) # Columns 30 to 527 are converted to double type
 class_of<- sapply(employee[,30:527],class)  # Columns 30 to 527 are converted to "POSIXt POSIXct"
 
+#-------------------------------------------------------------------------------------------------------------------------------
+
+#                             DATA PREPARATION AND DERIVED METRICS FOR IN TIME AND OUT TIME DATA
+
+#--------------------------------------------------------------------------------------------------------------------------------
 
 #Now that we have successfully treated the date and time, lets aggregate the day wise hours to monthly hours
 #The in time and out time are synchronous, as in if there is an NA on a particualr row in in_time df, there is a corresponding NA in Out_time df
@@ -153,3 +158,52 @@ employee1 <- cbind(employee1,actuals2)
 #rename the generic columns from X1 to X12 with sequence of months from Jan to dec
 library(data.table)
 setnames(employee1,old=names(employee1[,30:41]),new= paste(rep(month.abb,1),"_hours"))
+
+
+#-------------------------------------------------------------------------------------------------------------------------------------------
+#                                   DATA PREPARATION AND EDA FOR THE ENTIRE DATASET (employee1 dataframe)
+#-------------------------------------------------------------------------------------------------------------------------------------------
+
+#1. The rows and columns are consistent in terms of numbers. There are no missing rows and columns, 
+#   summary rows,misaligned rows,extra rows,missing column name
+
+#2. Dealing with missing values.
+sum(is.na(employee1)) #there are now 111 NA's in the entire dataframe,lets check which columns contain the NA's
+
+na_columns <- sapply(employee1,function(x) sum(is.na(x)))
+na_columns #NumCompaniesWorked has 19 NA's,EnvironmentSatisfaction has 25 NA's,JobSatisfaction has 20 NA's, WorkLifeBalance has 38 NA's,TotalWorkingYears has 9 NA's
+
+#lets examine the structure of above variables
+#a) numberofcompaniesworked
+summary(employee1$NumCompaniesWorked) #median is 2, lets replace the missing values with 2
+
+#replacing missing values with 2
+employee1[which(is.na(employee1$NumCompaniesWorked)),15] <- 2
+
+#b.EnvironmentSatisfaction
+#converting from numeric to categorical type
+employee1$EnvironmentSatisfaction <- as.factor(employee1$EnvironmentSatisfaction)
+summary(employee1$EnvironmentSatisfaction) #the most frequently occuring value is 3, lets impute the NA's with 3
+employee1[which(is.na(as.numeric(employee1$EnvironmentSatisfaction))),25] <- 3
+summary(employee1$EnvironmentSatisfaction) #there are no NA's
+
+#c.JobSatisfaction
+#converting from numeric to categorical type
+employee1$JobSatisfaction <- as.factor(employee1$JobSatisfaction)
+summary(employee1$JobSatisfaction) #the most frequently occuring value is 4, lets impute the NA's with 4
+employee1[which(is.na(as.numeric(employee1$JobSatisfaction))),26] <- 4
+summary(employee1$JobSatisfaction) 
+
+#d.Worklifebalance
+#converting from numeric to categorical type
+employee1$WorkLifeBalance <- as.factor(employee1$WorkLifeBalance) 
+summary(employee1$WorkLifeBalance) #the most frequently occuring value is 3, lets impute the NA's with 3
+employee1[which(is.na(as.numeric(employee1$WorkLifeBalance))),27] <- 3
+summary(employee1$JobSatisfaction) 
+
+#e.TotalWorkingYears
+summary(employee1$TotalWorkingYears) #median value is 10, lets impute the missing values with 10
+employee1[which(is.na(employee1$TotalWorkingYears)),20] <- 10
+
+#Now that we have imputed all the missing values, lets verify the same
+sum(is.na(employee1)) #0 , implies no missing values
