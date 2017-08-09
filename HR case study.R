@@ -146,6 +146,9 @@ dec <- names(select(actuals, contains("X2015.12"))); dec_hours <- actuals[,dec]
 month_list <- list(jan_hours,feb_hours,mar_hours,apr_hours,may_hours,jun_hours,jul_hours,aug_hours,sep_hours,oct_hours,nov_hours,dec_hours)
 actuals2 <- data.frame(sapply(month_list,function(x) rowSums(x,na.rm =T)))  #getting the cumulative working hours for each employee by month
 
+#Lets capture the sum of NA's in each of the months, these can be interpreted as the total number of leaves
+number_of_leaves <- data.frame(no_of_leaves=rowSums(is.na(actuals)))
+
 #now that we have aggregated the actual working hours per day by month, lets merge it with main dataframe
 
 employee1 <- employee
@@ -158,6 +161,10 @@ employee1 <- cbind(employee1,actuals2)
 #rename the generic columns from X1 to X12 with sequence of months from Jan to dec
 library(data.table)
 setnames(employee1,old=names(employee1[,30:41]),new= paste(rep(month.abb,1),"_hours"))
+
+#Appending the number of leaves derived metric to employee 1 DF
+employee1 <- cbind(employee1,number_of_leaves)
+
 
 
 #-------------------------------------------------------------------------------------------------------------------------------------------
