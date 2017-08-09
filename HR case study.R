@@ -265,7 +265,7 @@ summary(employee1) #All the character type variables are converted to factor typ
 employee1 <- employee1[,-which(names(employee1)=="Over18")]
 
 #----------------------------------------------------------------------------------------------------------------------------------------
-#                                 EXPLORATORY DATA ANALYSIS
+#                                 EXPLORATORY DATA ANALYSIS(UNIVARIATE AND BIVARIATE)
 #--------------------------------------------------------------------------------------------------------------------------
 
 
@@ -346,7 +346,8 @@ grid.arrange(YearAtCom_Plot,YearsSinceProm_Plot,YearsCurrManP_Plot,ncol=2,top = 
 # 2.Years Since Last Promotion: Larger proportion of people who have been promoted recently have quit the company.
 # 3.Years With Current Manager: As expected a new Manager is a strong cause for quitting.
 
-boxplot(employee1$`Jan _hours`~employee1$Attrition)
+ggplot(employee1,aes(x="Number of leaves",y=employee1$no_of_leaves,fill = Attrition))+ geom_boxplot()
+# Contrary to the belief, the median number of leaves by proportion of people who have left the company is lower than people who have not left
 
 #Boxplots for actual working hours for each months
 jan_plot <-ggplot(employee1,aes(x="Jan _hours",y=employee1$`Jan _hours`,fill = Attrition))+ geom_boxplot()
@@ -367,4 +368,27 @@ grid.arrange(jan_plot,feb_plot,mar_plot,apr_plot,may_plot,jun_plot,jul_plot,aug_
 #Observation
 #While the individual months doesnt give any insight, one thing thats evident is people who
 #left the company have a higher median working hours per month than those who have not
+
+#--------------------------------------------------------------------------------------------------------------------------------
+#3. Lets do a correlation analysis among various numeric variables
+
+employee_numeric <- sapply(employee1,function(x)is.numeric(x))
+employee_numeric_df <- employee1[,employee_numeric]
+employee_numeric_df <- employee_numeric_df[,-c(11:22)] #Excluding the actual hrs across months
+
+employee_corr <- cor(employee_numeric_df) #storing correlation matrix in employee_corr variable
+
+#Applying a proper theme for the corrplot to get a an easily readable correlation matrix
+library(corrplot)
+corrplot(employee_corr, order="AOE", method= "square", tl.pos="lt", type="upper",        
+         tl.col="black", tl.cex=0.6, tl.srt=45, 
+         addCoef.col="black", addCoefasPercent = TRUE,
+         p.mat = 1-abs(employee_corr), sig.level=0.50, insig = "blank") 
+
+#Observation from correlation analysis
+#1.Age is correlated to Total working years ( 68% correlation)
+#2. Total working years is correlated to years at company (61% correlation)
+#3. Yearsatcompany is correlated to yearssincelastpromotion (62% correlation)
+#4. Yearsatcompany is correlated to yearswithcurrentmanager (77% correlation)
+#5. Yearssincelastpromotion is correlated to yearswithcurrentmanager (51% correlation)
 
