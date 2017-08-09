@@ -265,7 +265,7 @@ summary(employee1) #All the character type variables are converted to factor typ
 employee1 <- employee1[,-which(names(employee1)=="Over18")]
 
 #----------------------------------------------------------------------------------------------------------------------------------------
-#                                 EXPLORATORY DATA ANALYSIS(UNIVARIATE AND BIVARIATE)
+#                                 EXPLORATORY DATA ANALYSIS(UNIVARIATE,BIVARIATE,CORRELATION ANALYSIS,DERIVED METRICS)
 #--------------------------------------------------------------------------------------------------------------------------
 
 
@@ -391,4 +391,34 @@ corrplot(employee_corr, order="AOE", method= "square", tl.pos="lt", type="upper"
 #3. Yearsatcompany is correlated to yearssincelastpromotion (62% correlation)
 #4. Yearsatcompany is correlated to yearswithcurrentmanager (77% correlation)
 #5. Yearssincelastpromotion is correlated to yearswithcurrentmanager (51% correlation)
+
+
+#------------------------------------------------------------------------------------------------------------------------------------
+#4. Derived metrics : lets derive few metrics based on our understanding of problem statement and dataset
+
+#Lets derive the following metrics :
+# a. Tenure per job: Employeed who have worked with many companies for smaller duration tend to leave 
+#company in search of others.
+#b. Years without change : This variable will be created to analyse the stagnation period of an employee,as in how long is the employee in same role/grade without change
+#c. Compa Ratio: Compa Ratio is the ratio of the actual pay of an Employee to the midpoint of a salary range. The salary range can be that of his/her department or organization or role. The benchmark numbers can be a organization’s pay or Industry average.
+#Here, we use the Comapny pay information to calculate our Compa Ratio at Department Level & Organiation Level.
+
+#Calculating tenure per job
+employee1$tenureperjob <- round(ifelse(employee1$NumCompaniesWorked!=0, employee1$TotalWorkingYears/employee1$NumCompaniesWorked,0),1)
+
+#Calculating years without change
+employee1$yrswithoutchange <- employee1$TotalWorkingYears - employee1$YearsSinceLastPromotion
+
+#Lets plot the above 2 variables to see the impact on attrition
+tenure_Plot <- ggplot(employee1,aes(tenureperjob))+geom_density()+facet_grid(~Attrition)
+change_Plot <- ggplot(employee1,aes(yrswithoutchange))+geom_density()+facet_grid(~Attrition)
+grid.arrange(tenure_Plot,change_Plot,ncol=2,top = "Derived metrics 1a")
+
+#c.Calculating Compa ratio
+#Aggregating by department and getting median salary by department
+dept_median_salary <- data.frame(group_by(employee1,Department) %>% summarise(median_Sal=median(MonthlyIncome)))
+hr_med_salary <- dept_median_salary[which(dept_median_salary$Department=="Human Resources"),2]
+research_med_salary <- dept_median_salary[which(dept_median_salary$Department=="Research & Development"),2]
+sales_med_salary <- dept_median_salary[which(dept_median_salary$Department=="Sales"),2]
+
 
