@@ -264,15 +264,7 @@ employee1 <- employee1[,-which(names(employee1)=="Over18")]
 
 #1. Lets analyze the categorical features in a bar chart grid view as follows:
 
-bar_theme1<- theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), legend.position="none")
 
-# plot_grid(ggplot(employee1, aes(x=BusinessTravel,fill=Attrition))+ geom_bar(), 
-#           ggplot(employee1, aes(x=Department,fill=Attrition))+ geom_bar()+bar_theme1,
-#           ggplot(employee1, aes(x=EducationField,fill=Attrition))+ geom_bar()+bar_theme1,
-#           ggplot(employee1, aes(x=Gender,fill=Attrition))+ geom_bar()+bar_theme1,
-#           ggplot(employee1, aes(x=JobRole,fill=Attrition))+ geom_bar()+bar_theme1,
-#           ggplot(employee1, aes(x=MaritalStatus,fill=Attrition))+ geom_bar()+bar_theme1,
-#           align = "h") 
 
 Businesstravel_plot <- ggplot(employee1, aes(x=BusinessTravel,fill=Attrition))+ geom_bar()
 department_plot <-  ggplot(employee1, aes(x=Department,fill=Attrition))+ geom_bar() 
@@ -287,7 +279,14 @@ eduPlot <- ggplot(employee1, aes(x=Education,fill=Attrition))+ geom_bar()
 joblevelPlot <- ggplot(employee1, aes(x=JobLevel,fill=Attrition))+ geom_bar()
 stockoptionLevelPlot <- ggplot(employee1, aes(x=StockOptionLevel,fill=Attrition))+ geom_bar()
 EnvironmentSatisfactionplot <-ggplot(employee1, aes(x=EnvironmentSatisfaction,fill=Attrition))+ geom_bar()
-grid.arrange(eduPlot,joblevelPlot,stockoptionLevelPlot,EnvironmentSatisfactionplot ,ncol=2,top = "Fig 1a")
+grid.arrange(eduPlot,joblevelPlot,stockoptionLevelPlot,EnvironmentSatisfactionplot ,ncol=2,top = "Fig 1c")
+
+
+job_satisfaction_Plot <- ggplot(employee1, aes(x=JobSatisfaction,fill=Attrition))+ geom_bar(position="dodge")
+WorkLifeBalance_plot <- ggplot(employee1, aes(x=WorkLifeBalance,fill=Attrition))+ geom_bar(position="dodge")
+JobInvolvement_plot <- ggplot(employee1, aes(x=JobInvolvement,fill=Attrition))+ geom_bar(position="dodge")
+PerformanceRating_plot <-ggplot(employee1, aes(x=PerformanceRating,fill=Attrition))+ geom_bar(position="dodge")
+grid.arrange(job_satisfaction_Plot,WorkLifeBalance_plot,JobInvolvement_plot,PerformanceRating_plot ,ncol=2,top = "Fig 1d")
 
 
 
@@ -304,19 +303,61 @@ grid.arrange(eduPlot,joblevelPlot,stockoptionLevelPlot,EnvironmentSatisfactionpl
 
 #-----------------------------------------------------------------------------------------------------------------------------------
 
-#2. Lets analyze the continous variables using histogram and barcharts
+#2. Lets analyze the prominent continous variables using histogram and barcharts
 
-box_theme<- theme(axis.line=element_blank(),axis.title=element_blank(), 
-                  axis.ticks=element_blank(), axis.text=element_blank())
 
-box_theme_y<- theme(axis.line.y=element_blank(),axis.title.y=element_blank(), 
-                    axis.ticks.y=element_blank(), axis.text.y=element_blank(),
-                    legend.position="none")
+agePlot <- ggplot(employee1,aes(Age,fill=Attrition))+geom_density()+facet_grid(~Attrition)
+distPlot <- ggplot(employee1,aes(DistanceFromHome,fill=Attrition))+geom_bar()
+monthly_income_Plot <- ggplot(employee1,aes(MonthlyIncome,fill=Attrition))+geom_density()
+number_of_companies_plot <- ggplot(employee1,aes(NumCompaniesWorked,fill=Attrition))+geom_bar()
+grid.arrange(agePlot,distPlot,monthly_income_Plot,number_of_companies_plot,ncol=2,top = "Fig 2a")
 
-#For variable Age
-plot_grid(ggplot(employee1, aes(Age))+ geom_histogram(binwidth = 10),
-          ggplot(employee1, aes(x="",y=Age))+ geom_boxplot(width=0.1)+coord_flip()+box_theme, 
-          align = "v",ncol = 1)
-#Median age is around 36 years,maximum density is in the 25 to 35 age group bucket
+#Observations:
+#1.Age: Majority of employees leaving the organization are aged around 30 years
+#2.Distance from home: Interestingly, employees who have left the company stay closer to office
+#3.Monthly income: Attrition is high in employees of lower income groups
+#4.Number of companies worked: Clearly people who have worked in one company before have higher attrition rate
 
+
+salary_hike_Plot <- ggplot(employee1,aes(PercentSalaryHike,Attrition))+geom_point(size=4,alpha = 0.01)
+total_working_Years_Plot <- ggplot(employee1,aes(TotalWorkingYears,fill = Attrition))+geom_bar()
+Training_Times_Plot <- ggplot(employee1,aes(TrainingTimesLastYear,fill = Attrition))+geom_bar()
+grid.arrange(salary_hike_Plot,total_working_Years_Plot,Training_Times_Plot,ncol=2,top = "Fig 2b")
+
+#Observations:
+#1.Percent Salary Hike: Employees with less than 15% hike have more chances to leave.
+#2. Total Working Years: larger proportions of employees with 1 year of experiences quitting the company also in bracket of 1-10 Years.
+#3.Traning Times Last Year: This indicates the no of trainings the employee has attended. People who have been trained 2-4 times is a problematic area
+
+YearAtCom_Plot <- ggplot(employee1,aes(YearsAtCompany,fill = Attrition))+geom_bar()
+YearsSinceProm_Plot <- ggplot(employee1,aes(YearsSinceLastPromotion,fill = Attrition))+geom_bar()
+YearsCurrManP_Plot <- ggplot(employee1,aes(YearsWithCurrManager,fill = Attrition))+geom_bar()
+grid.arrange(YearAtCom_Plot,YearsSinceProm_Plot,YearsCurrManP_Plot,ncol=2,top = "Fig 2c")
+
+#Observations:
+# 1.Years at Company: Larger proportion of new comers are quitting the organization. Which sidelines the recruitment efforts of the organization.
+# 2.Years Since Last Promotion: Larger proportion of people who have been promoted recently have quit the company.
+# 3.Years With Current Manager: As expected a new Manager is a strong cause for quitting.
+
+boxplot(employee1$`Jan _hours`~employee1$Attrition)
+
+#Boxplots for actual working hours for each months
+jan_plot <-ggplot(employee1,aes(x="Jan _hours",y=employee1$`Jan _hours`,fill = Attrition))+ geom_boxplot()
+feb_plot <- ggplot(employee1,aes(x="Feb _hours",y=employee1$`Feb _hours`,fill = Attrition))+ geom_boxplot()
+mar_plot <- ggplot(employee1,aes(x="Mar _hours",y=employee1$`Mar _hours`,fill = Attrition))+ geom_boxplot()
+apr_plot <- ggplot(employee1,aes(x="Apr _hours",y=employee1$`Apr _hours`,fill = Attrition))+ geom_boxplot()
+may_plot <- ggplot(employee1,aes(x="May _hours",y=employee1$`May _hours`,fill = Attrition))+ geom_boxplot()
+jun_plot <- ggplot(employee1,aes(x="Jun _hours",y=employee1$`Jun _hours`,fill = Attrition))+ geom_boxplot()
+jul_plot <- ggplot(employee1,aes(x="Jul _hours",y=employee1$`Jul _hours`,fill = Attrition))+ geom_boxplot()
+aug_plot <- ggplot(employee1,aes(x="Aug _hours",y=employee1$`Aug _hours`,fill = Attrition))+ geom_boxplot()
+sep_plot <- ggplot(employee1,aes(x="Sep _hours",y=employee1$`Sep _hours`,fill = Attrition))+ geom_boxplot()
+oct_plot <- ggplot(employee1,aes(x="Oct _hours",y=employee1$`Oct _hours`,fill = Attrition))+ geom_boxplot()
+nov_plot <- ggplot(employee1,aes(x="Nov _hours",y=employee1$`Nov _hours`,fill = Attrition))+ geom_boxplot()
+dec_plot <- ggplot(employee1,aes(x="Dec _hours",y=employee1$`Dec _hours`,fill = Attrition))+ geom_boxplot()
+grid.arrange(jan_plot,feb_plot,mar_plot,apr_plot,may_plot,jun_plot,jul_plot,aug_plot,sep_plot,
+             oct_plot,nov_plot,dec_plot,ncol=3,top = "Fig 2cd")
+
+#Observation
+#While the individual months doesnt give any insight, one thing thats evident is people who
+#left the company have a higher median working hours per month than those who have not
 
