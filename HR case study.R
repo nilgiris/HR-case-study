@@ -401,7 +401,7 @@ corrplot(employee_corr, order="AOE", method= "square", tl.pos="lt", type="upper"
 #company in search of others.
 #b. Years without change : This variable will be created to analyse the stagnation period of an employee,as in how long is the employee in same role/grade without change
 #c. Compa Ratio: Compa Ratio is the ratio of the actual pay of an Employee to the midpoint of a salary range. The salary range can be that of his/her department or organization or role. The benchmark numbers can be a organization’s pay or Industry average.
-#Here, we use the Comapny pay information to calculate our Compa Ratio at Department Level & Organiation Level.
+#Here, we use the Comapny pay information to calculate our Compa Ratio at the job role level.
 
 #Calculating tenure per job
 employee1$tenureperjob <- round(ifelse(employee1$NumCompaniesWorked!=0, employee1$TotalWorkingYears/employee1$NumCompaniesWorked,0),1)
@@ -414,11 +414,34 @@ tenure_Plot <- ggplot(employee1,aes(tenureperjob))+geom_density()+facet_grid(~At
 change_Plot <- ggplot(employee1,aes(yrswithoutchange))+geom_density()+facet_grid(~Attrition)
 grid.arrange(tenure_Plot,change_Plot,ncol=2,top = "Derived metrics 1a")
 
-#c.Calculating Compa ratio
-#Aggregating by department and getting median salary by department
-dept_median_salary <- data.frame(group_by(employee1,Department) %>% summarise(median_Sal=median(MonthlyIncome)))
-hr_med_salary <- dept_median_salary[which(dept_median_salary$Department=="Human Resources"),2]
-research_med_salary <- dept_median_salary[which(dept_median_salary$Department=="Research & Development"),2]
-sales_med_salary <- dept_median_salary[which(dept_median_salary$Department=="Sales"),2]
+#c.Calculating Compa ratio(At job role level)
+
+#Aggregating by JobRoles and getting median salary by JobRoles
+jobrole_median_salary <- data.frame(group_by(employee1,JobRole) %>% summarise(median_Sal=median(MonthlyIncome)))
+Healthcare_Representative_med_salary <- jobrole_median_salary[which(jobrole_median_salary$JobRole=="Healthcare Representative"),2] 
+HR_med_salary <-  jobrole_median_salary[which(jobrole_median_salary$JobRole=="Human Resources"),2] 
+labtech_med_salary <- jobrole_median_salary[which(jobrole_median_salary$JobRole=="Laboratory Technician"),2] 
+manager_med_salary <- jobrole_median_salary[which(jobrole_median_salary$JobRole=="Manager"),2] 
+manufactdirector_med_salary <- jobrole_median_salary[which(jobrole_median_salary$JobRole=="Manufacturing Director"),2]
+research_director_med_salary <- jobrole_median_salary[which(jobrole_median_salary$JobRole=="Research Director"),2]
+research_scientist_med_Salary <- jobrole_median_salary[which(jobrole_median_salary$JobRole=="Research Scientist"),2]
+Sales_Executive_med_Salary <- jobrole_median_salary[which(jobrole_median_salary$JobRole=="Sales Executive"),2]
+Sales_Representative_med_Salary <- jobrole_median_salary[which(jobrole_median_salary$JobRole=="Sales Representative"),2]
+
+
+#calculating compa ratio by job role:
+employee1$comparatio_by_jobrole <- round(ifelse(employee1$JobRole=="Healthcare Representative",employee1$MonthlyIncome/Healthcare_Representative_med_salary,
+                                   ifelse(employee1$JobRole=="Human Resources",employee1$MonthlyIncome/HR_med_salary,
+                                   ifelse(employee1$JobRole=="Laboratory Technician",employee1$MonthlyIncome/labtech_med_salary,
+                                   ifelse(employee1$JobRole=="Manager",employee1$MonthlyIncome/manager_med_salary,
+                                   ifelse(employee1$JobRole=="Manufacturing Director",employee1$MonthlyIncome/manufactdirector_med_salary,
+                                   ifelse(employee1$JobRole=="Research Director",employee1$MonthlyIncome/research_director_med_salary,
+                                   ifelse(employee1$JobRole=="Research Scientist",employee1$MonthlyIncome/research_scientist_med_Salary,
+                                   ifelse(employee1$JobRole=="Sales Executive",employee1$MonthlyIncome/Sales_Executive_med_Salary,employee1$MonthlyIncome/Sales_Representative_med_Salary)))))))),2)
+
+
+#Now that we have plotted the compa ratio at the Job level, lets plot to see the pattern of attrition
+ggplot(employee1,aes(comparatio_by_jobrole))+geom_density()+facet_grid(~Attrition)
+#People with lower comparatio have a high attrition rate indicating dissatisfaction towards the salary being drawn
 
 
