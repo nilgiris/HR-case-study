@@ -41,6 +41,7 @@
 #install.packages("lubridate")
 #install.packages("data.table")
 #install.packages("dplyr")
+#install.packages("woe")
 
 library(MASS)
 library(car)
@@ -52,6 +53,7 @@ library(caTools)
 library(lubridate)
 library(grid)
 library(gridExtra)
+library(woe)
 
 #Loading the required files for analysis:
 
@@ -445,3 +447,39 @@ ggplot(employee1,aes(comparatio_by_jobrole))+geom_density()+facet_grid(~Attritio
 #People with lower comparatio have a high attrition rate indicating dissatisfaction towards the salary being drawn
 
 
+#----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#                                     VARIABLE TRANSFORMATION (BINNING OF VARIABLES, SCALING AND RANDOM VARIABLES CREATION)
+#----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#1. Lets look at the variables and check if they need to be binned
+#woe(Data, Independent, Continuous, Dependent, C_Bin, Bad, Good) #Function usage
+#woe(Data=mtcars,"cyl",FALSE,"am",10,Bad=0,Good=1) #example
+
+# converting target variable Attrition from No/Yes character to factorwith levels 0/1 
+employee1$Attrition<- ifelse(employee1$Attrition=="Yes",1,0)
+
+# a)Getting the range of binning for the variable comparatio_by_jobrole
+woe_jobrole<- woe(Data=employee1,"comparatio_by_jobrole",TRUE,"Attrition",4,Bad=0,Good=1)#WOE shows a monotonically decreasing trend
+
+jobrole_observations <- seq(1:3) 
+ggplot(woe_jobrole, aes(jobrole_observations)) + geom_line(aes(y = WOE))+geom_hline(yintercept = 0) #Plot shows monotonically decreasing trend
+
+#The variable can be binned into 3 groups, 0.21 to 0.74 to group1, 0.74 to 1.31 to group2,1.31 t0 4.56 to group 3
+employee1$jobrole_group <- with(employee1,ifelse(comparatio_by_jobrole %>% between(0.21,0.74),1,ifelse(comparatio_by_jobrole %>% between (0.74,1.31),2,3)))
+
+
+#b) Getting the range of binning for the variable Age
+woe_age <- woe(Data=employee1,"Age",TRUE,"Attrition",5,Bad=0,Good=1)#WOE shows a monotonically decreasing trend
+woe_age
+
+age_observations <- seq(1:5) 
+ggplot(woe_age, aes(age_observations)) + geom_line(aes(y = WOE))+geom_hline(yintercept = 0) #Plot shows monotonically decreasing trend
+#The variable can be binned into 3 groups, Age 18 to 32 to group1, 32 to 40 group2,40 to 60 to group 3
+employee1$age_group <- with(employee1,ifelse(Age %>% between(18,32),1,ifelse(comparatio_by_jobrole %>% between (32,40),2,3)))
+
+#c) Getting the range of binning for the variable DistanceFromHome
+woe_TotalWorkingYears <- woe(Data=employee1,"TotalWorkingYears",TRUE,"Attrition",6,Bad=0,Good=1)#WOE shows a monotonically decreasing trend
+woe_TotalWorkingYears
+
+TotalWorkingYears_obs <- seq(1:5) 
+ggplot(woe_TotalWorkingYears, aes(TotalWorkingYears_obs)) + geom_line(aes(y = WOE))+geom_hline(yintercept = 0) #Plot shows monotonically decreasing trend
