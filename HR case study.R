@@ -167,8 +167,6 @@ setnames(employee1,old=names(employee1[,30:41]),new= paste(rep(month.abb,1),"_ho
 #Appending the number of leaves derived metric to employee 1 DF
 employee1 <- cbind(employee1,number_of_leaves)
 
-
-
 #-------------------------------------------------------------------------------------------------------------------------------------------
 #                                   DATA PREPARATION AND EDA FOR THE ENTIRE DATASET (employee1 dataframe)
 #-------------------------------------------------------------------------------------------------------------------------------------------
@@ -270,9 +268,7 @@ employee1 <- employee1[,-which(names(employee1)=="Over18")]
 #                                 EXPLORATORY DATA ANALYSIS(UNIVARIATE,BIVARIATE,CORRELATION ANALYSIS,DERIVED METRICS)
 #--------------------------------------------------------------------------------------------------------------------------
 
-
 #1. Lets analyze the categorical features in a bar chart grid view as follows:
-
 
 
 Businesstravel_plot <- ggplot(employee1, aes(x=BusinessTravel,fill=Attrition))+ geom_bar()
@@ -297,8 +293,6 @@ JobInvolvement_plot <- ggplot(employee1, aes(x=JobInvolvement,fill=Attrition))+ 
 PerformanceRating_plot <-ggplot(employee1, aes(x=PerformanceRating,fill=Attrition))+ geom_bar(position="dodge")
 grid.arrange(job_satisfaction_Plot,WorkLifeBalance_plot,JobInvolvement_plot,PerformanceRating_plot ,ncol=2,top = "Fig 1d")
 
-
-
 #Reveals the following insights with respect to Attrition
 #1. High for those who travelled rarely
 #2. High for Research and Development Department
@@ -306,9 +300,6 @@ grid.arrange(job_satisfaction_Plot,WorkLifeBalance_plot,JobInvolvement_plot,Perf
 #4. High for gender male
 #5. High for job roles as Research scientist, Technician and sales
 #6. High for marital status single
-
-
-
 
 #-----------------------------------------------------------------------------------------------------------------------------------
 
@@ -326,7 +317,6 @@ grid.arrange(agePlot,distPlot,monthly_income_Plot,number_of_companies_plot,ncol=
 #2.Distance from home: Interestingly, employees who have left the company stay closer to office
 #3.Monthly income: Attrition is high in employees of lower income groups
 #4.Number of companies worked: Clearly people who have worked in one company before have higher attrition rate
-
 
 salary_hike_Plot <- ggplot(employee1,aes(PercentSalaryHike,Attrition))+geom_point(size=4,alpha = 0.01)
 total_working_Years_Plot <- ggplot(employee1,aes(TotalWorkingYears,fill = Attrition))+geom_bar()
