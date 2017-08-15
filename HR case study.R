@@ -129,18 +129,18 @@ actuals <- data.frame(sapply(actuals,function(x) round(x,2)))#rounding to 2 deci
 #Grouping the columns by months
 library(dplyr)
 #colname            #grouping                       #creating a dataframe by month
-jan <- names(select(actuals, contains("X2015.01"))); jan_hours <- actuals[,jan] 
-feb <- names(select(actuals, contains("X2015.02"))); feb_hours <- actuals[,feb]
-mar <- names(select(actuals, contains("X2015.03"))); mar_hours <- actuals[,mar]
-apr <- names(select(actuals, contains("X2015.04"))); apr_hours <- actuals[,apr]
-may <- names(select(actuals, contains("X2015.05"))); may_hours <- actuals[,may]
-jun <- names(select(actuals, contains("X2015.06"))); jun_hours <- actuals[,jun]
-jul <- names(select(actuals, contains("X2015.07"))); jul_hours <- actuals[,jul]
-aug <- names(select(actuals, contains("X2015.08"))); aug_hours <- actuals[,aug]
-sep <- names(select(actuals, contains("X2015.09"))); sep_hours <- actuals[,sep]
-oct <- names(select(actuals, contains("X2015.10"))); oct_hours <- actuals[,oct]
-nov <- names(select(actuals, contains("X2015.11"))); nov_hours <- actuals[,nov]
-dec <- names(select(actuals, contains("X2015.12"))); dec_hours <- actuals[,dec]
+jan <- names(dplyr::select(actuals, contains("X2015.01"))); jan_hours <- actuals[,jan] 
+feb <- names(dplyr::select(actuals, contains("X2015.02"))); feb_hours <- actuals[,feb]
+mar <- names(dplyr::select(actuals, contains("X2015.03"))); mar_hours <- actuals[,mar]
+apr <- names(dplyr::select(actuals, contains("X2015.04"))); apr_hours <- actuals[,apr]
+may <- names(dplyr::select(actuals, contains("X2015.05"))); may_hours <- actuals[,may]
+jun <- names(dplyr::select(actuals, contains("X2015.06"))); jun_hours <- actuals[,jun]
+jul <- names(dplyr::select(actuals, contains("X2015.07"))); jul_hours <- actuals[,jul]
+aug <- names(dplyr::select(actuals, contains("X2015.08"))); aug_hours <- actuals[,aug]
+sep <- names(dplyr::select(actuals, contains("X2015.09"))); sep_hours <- actuals[,sep]
+oct <- names(dplyr::select(actuals, contains("X2015.10"))); oct_hours <- actuals[,oct]
+nov <- names(dplyr::select(actuals, contains("X2015.11"))); nov_hours <- actuals[,nov]
+dec <- names(dplyr::select(actuals, contains("X2015.12"))); dec_hours <- actuals[,dec]
 
 
 #Cumulating the number of actual working hours an employee has clocked by month
