@@ -271,26 +271,26 @@ employee1 <- employee1[,-which(names(employee1)=="Over18")]
 #1. Lets analyze the categorical features in a bar chart grid view as follows:
 
 
-Businesstravel_plot <- ggplot(employee1, aes(x=BusinessTravel,fill=Attrition))+ geom_bar()
-department_plot <-  ggplot(employee1, aes(x=Department,fill=Attrition))+ geom_bar() 
-educationfield_plot  <-   ggplot(employee1, aes(x=EducationField,fill=Attrition))+ geom_bar()
-gender_plot <- ggplot(employee1, aes(x=Gender,fill=Attrition))+ geom_bar()
-job_role_plot <- ggplot(employee1, aes(x=JobRole,fill=Attrition))+ geom_bar()
-marital_status_plot <- ggplot(employee1, aes(x=MaritalStatus,fill=Attrition))+ geom_bar()
+Businesstravel_plot <- ggplot(employee1, aes(x=BusinessTravel,fill=Attrition))+ geom_bar(position="fill")
+department_plot <-  ggplot(employee1, aes(x=Department,fill=Attrition))+ geom_bar(position="fill") 
+educationfield_plot  <-   ggplot(employee1, aes(x=EducationField,fill=Attrition))+ geom_bar(position="fill")
+gender_plot <- ggplot(employee1, aes(x=Gender,fill=Attrition))+ geom_bar(position="fill")
+job_role_plot <- ggplot(employee1, aes(x=JobRole,fill=Attrition))+ geom_bar(position="fill")
+marital_status_plot <- ggplot(employee1, aes(x=MaritalStatus,fill=Attrition))+ geom_bar(position="fill")
 grid.arrange(Businesstravel_plot,department_plot,educationfield_plot,gender_plot,ncol=2,top = "Fig 1a")        
 grid.arrange(job_role_plot,marital_status_plot,ncol=1,top = "Fig 1b")        
 
-eduPlot <- ggplot(employee1, aes(x=Education,fill=Attrition))+ geom_bar()
-joblevelPlot <- ggplot(employee1, aes(x=JobLevel,fill=Attrition))+ geom_bar()
-stockoptionLevelPlot <- ggplot(employee1, aes(x=StockOptionLevel,fill=Attrition))+ geom_bar()
-EnvironmentSatisfactionplot <-ggplot(employee1, aes(x=EnvironmentSatisfaction,fill=Attrition))+ geom_bar()
+eduPlot <- ggplot(employee1, aes(x=Education,fill=Attrition))+ geom_bar(position="fill")
+joblevelPlot <- ggplot(employee1, aes(x=JobLevel,fill=Attrition))+ geom_bar(position="fill")
+stockoptionLevelPlot <- ggplot(employee1, aes(x=StockOptionLevel,fill=Attrition))+ geom_bar(position="fill")
+EnvironmentSatisfactionplot <-ggplot(employee1, aes(x=EnvironmentSatisfaction,fill=Attrition))+ geom_bar(position="fill")
 grid.arrange(eduPlot,joblevelPlot,stockoptionLevelPlot,EnvironmentSatisfactionplot ,ncol=2,top = "Fig 1c")
 
 
-job_satisfaction_Plot <- ggplot(employee1, aes(x=JobSatisfaction,fill=Attrition))+ geom_bar(position="dodge")
-WorkLifeBalance_plot <- ggplot(employee1, aes(x=WorkLifeBalance,fill=Attrition))+ geom_bar(position="dodge")
-JobInvolvement_plot <- ggplot(employee1, aes(x=JobInvolvement,fill=Attrition))+ geom_bar(position="dodge")
-PerformanceRating_plot <-ggplot(employee1, aes(x=PerformanceRating,fill=Attrition))+ geom_bar(position="dodge")
+job_satisfaction_Plot <- ggplot(employee1, aes(x=JobSatisfaction,fill=Attrition))+ geom_bar(position="fill")
+WorkLifeBalance_plot <- ggplot(employee1, aes(x=WorkLifeBalance,fill=Attrition))+ geom_bar(position="fill")
+JobInvolvement_plot <- ggplot(employee1, aes(x=JobInvolvement,fill=Attrition))+ geom_bar(position="fill")
+PerformanceRating_plot <-ggplot(employee1, aes(x=PerformanceRating,fill=Attrition))+ geom_bar(position="fill")
 grid.arrange(job_satisfaction_Plot,WorkLifeBalance_plot,JobInvolvement_plot,PerformanceRating_plot ,ncol=2,top = "Fig 1d")
 
 #Reveals the following insights with respect to Attrition
@@ -787,5 +787,76 @@ model_21 <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears +
                   JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
                   WorkLifeBalance.x2  + WorkLifeBalance.x4 , family = "binomial", data = train)
 
-summary(model_21) #2179.5,Residual deviance: 2143.5 
-sort(vif(model_20))
+summary(model_21) #AIC=2179.5,Residual deviance: 2143.5 
+sort(vif(model_21))
+
+#model_22 : Excluding WorkLifeBalance.x4  because of its high P value of 0.755565 
+model_22 <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
+                  TrainingTimesLastYear + YearsSinceLastPromotion + 
+                  YearsWithCurrManager + `Oct _hours`  +  BusinessTravel.xTravel_Frequently+JobRole.xManufacturing.Director + 
+                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
+                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
+                  JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
+                  WorkLifeBalance.x2 , family = "binomial", data = train)
+summary(model_22) #AIC=2177.6,Residual deviance: 2143.6
+sort(vif(model_22))
+
+#model_23: Excluding WorkLifeBalance.x2  because of its high P value of  0.317683  
+model_23 <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
+                  TrainingTimesLastYear + YearsSinceLastPromotion + 
+                  YearsWithCurrManager + `Oct _hours`  +  BusinessTravel.xTravel_Frequently+JobRole.xManufacturing.Director + 
+                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
+                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
+                  JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4  , family = "binomial", data = train)
+
+summary(model_23) #AIC=2177.6,Residual deviance: 2143.6
+#we have 15 variables with all low P values(***)
+sort(vif(model_23)) #all the VIF's are below 15
+
+#we will try to simplify the model further by using domain understanding and insights from EDA
+
+#model_24 :Excluding `Oct _hours`
+model_24 <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
+                  TrainingTimesLastYear + YearsSinceLastPromotion + 
+                  YearsWithCurrManager +  BusinessTravel.xTravel_Frequently+JobRole.xManufacturing.Director + 
+                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
+                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
+                  JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4  , family = "binomial", data = train)
+
+summary(model_24) #AIC: 2310.3,Residual deviance: 2280.3
+sort(vif(model_24))
+
+#model_25 : Excluding JobSatisfaction.x2 because of its P value 0.001539 ** 
+model_25 <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
+                  TrainingTimesLastYear + YearsSinceLastPromotion + 
+                  YearsWithCurrManager +  BusinessTravel.xTravel_Frequently+JobRole.xManufacturing.Director + 
+                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
+                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
+                  JobSatisfaction.x3 + JobSatisfaction.x4  , family = "binomial", data = train)
+summary(model_25) #AIC: 2318.4,Residual deviance: 2290.4 
+sort(vif(model_25))
+
+#model_26 : 
+
+model_25_a <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
+                  TrainingTimesLastYear + YearsSinceLastPromotion + 
+                  YearsWithCurrManager +  BusinessTravel.xTravel_Frequently+JobRole.xManufacturing.Director + 
+                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
+                  EnvironmentSatisfaction.x3  + 
+                  JobSatisfaction.x3 + JobSatisfaction.x4  , family = "binomial", data = train)
+summary(model_25_a) #AIC : 2360.3,Residual deviance: 2334.3 
+sort(vif(model_25_a))
+
+model_25_b <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
+                  TrainingTimesLastYear + YearsSinceLastPromotion + 
+                  YearsWithCurrManager +  BusinessTravel.xTravel_Frequently+JobRole.xManufacturing.Director + 
+                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
+                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
+                  JobSatisfaction.x3  , family = "binomial", data = train)
+
+model_25 <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
+                  TrainingTimesLastYear + 
+                  YearsWithCurrManager +  BusinessTravel.xTravel_Frequently+JobRole.xManufacturing.Director + 
+                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
+                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
+                  JobSatisfaction.x3 + JobSatisfaction.x4  , family = "binomial", data = train)
