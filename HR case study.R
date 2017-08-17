@@ -42,6 +42,8 @@
 #install.packages("data.table")
 #install.packages("dplyr")
 #install.packages("woe")
+#install.packages("e1071")
+#install.packages("ROCR")
 
 library(MASS)
 library(car)
@@ -54,6 +56,9 @@ library(lubridate)
 library(grid)
 library(gridExtra)
 library(woe)
+library(ROCR)
+library(e1071)
+library(dplyr)
 
 #Loading the required files for analysis:
 
@@ -192,6 +197,7 @@ employee1[which(is.na(employee1$NumCompaniesWorked)),15] <- 2
 employee1$EnvironmentSatisfaction <- as.factor(employee1$EnvironmentSatisfaction)
 summary(employee1$EnvironmentSatisfaction) #the most frequently occuring value is 3, lets impute the NA's with 3
 employee1[which(is.na(as.numeric(employee1$EnvironmentSatisfaction))),25] <- 3
+
 summary(employee1$EnvironmentSatisfaction) #there are no NA's
 
 #c.JobSatisfaction
@@ -199,6 +205,7 @@ summary(employee1$EnvironmentSatisfaction) #there are no NA's
 employee1$JobSatisfaction <- as.factor(employee1$JobSatisfaction)
 summary(employee1$JobSatisfaction) #the most frequently occuring value is 4, lets impute the NA's with 4
 employee1[which(is.na(as.numeric(employee1$JobSatisfaction))),26] <- 4
+
 summary(employee1$JobSatisfaction) 
 
 #d.Worklifebalance
@@ -206,6 +213,7 @@ summary(employee1$JobSatisfaction)
 employee1$WorkLifeBalance <- as.factor(employee1$WorkLifeBalance) 
 summary(employee1$WorkLifeBalance) #the most frequently occuring value is 3, lets impute the NA's with 3
 employee1[which(is.na(as.numeric(employee1$WorkLifeBalance))),27] <- 3
+
 summary(employee1$JobSatisfaction) 
 
 #e.TotalWorkingYears
@@ -254,6 +262,8 @@ outlier_df #by inspection of the outlier dataframe and the progression of number
 
 #-----------------------------------------------------------------------------------------------------------------------------------------------------------------
 # 6. Converting character type variables to factor type
+
+
 
 str(employee1)
 employee_char <- sapply(employee1,is.character)
@@ -422,14 +432,14 @@ Sales_Representative_med_Salary <- jobrole_median_salary[which(jobrole_median_sa
 
 
 #calculating compa ratio by job role:
-employee1$comparatio_by_jobrole <- round(ifelse(employee1$JobRole=="Healthcare Representative",employee1$MonthlyIncome/Healthcare_Representative_med_salary,
-                                   ifelse(employee1$JobRole=="Human Resources",employee1$MonthlyIncome/HR_med_salary,
-                                   ifelse(employee1$JobRole=="Laboratory Technician",employee1$MonthlyIncome/labtech_med_salary,
-                                   ifelse(employee1$JobRole=="Manager",employee1$MonthlyIncome/manager_med_salary,
-                                   ifelse(employee1$JobRole=="Manufacturing Director",employee1$MonthlyIncome/manufactdirector_med_salary,
-                                   ifelse(employee1$JobRole=="Research Director",employee1$MonthlyIncome/research_director_med_salary,
-                                   ifelse(employee1$JobRole=="Research Scientist",employee1$MonthlyIncome/research_scientist_med_Salary,
-                                   ifelse(employee1$JobRole=="Sales Executive",employee1$MonthlyIncome/Sales_Executive_med_Salary,employee1$MonthlyIncome/Sales_Representative_med_Salary)))))))),2)
+employee1$comparatio_by_jobrole <-  round( ifelse(employee1$JobRole=="Healthcare Representative",employee1$MonthlyIncome/Healthcare_Representative_med_salary,
+                                                  ifelse(employee1$JobRole=="Human Resources",employee1$MonthlyIncome/HR_med_salary,
+                                                         ifelse(employee1$JobRole=="Laboratory Technician",employee1$MonthlyIncome/labtech_med_salary,
+                                                                ifelse(employee1$JobRole=="Manager",employee1$MonthlyIncome/manager_med_salary,
+                                                                       ifelse(employee1$JobRole=="Manufacturing Director",employee1$MonthlyIncome/manufactdirector_med_salary,
+                                                                              ifelse(employee1$JobRole=="Research Director",employee1$MonthlyIncome/research_director_med_salary,
+                                                                                     ifelse(employee1$JobRole=="Research Scientist",employee1$MonthlyIncome/research_scientist_med_Salary,
+                                                                                            ifelse(employee1$JobRole=="Sales Executive",employee1$MonthlyIncome/Sales_Executive_med_Salary,employee1$MonthlyIncome/Sales_Representative_med_Salary)))))))),2)
 
 
 #Now that we have plotted the compa ratio at the Job level, lets plot to see the pattern of attrition
@@ -443,10 +453,23 @@ ggplot(employee1,aes(comparatio_by_jobrole))+geom_density()+facet_grid(~Attritio
 
 #1. Normalising the continous variables
 str(employee1)
+#For the purpose of regression, converting all the ordinal variables to continous one
+#confirmed in the following research paper https://www3.nd.edu/~rwilliam/stats3/OrdinalIndependent.pdf
+
+employee1$Education <- as.numeric(employee1$Education)
+employee1$JobLevel <- as.numeric(employee1$JobLevel)
+employee1$StockOptionLevel <- as.numeric(employee1$StockOptionLevel)
+employee1$JobInvolvement <- as.numeric(employee1$JobInvolvement)
+employee1$PerformanceRating <- as.numeric(employee1$PerformanceRating)
+employee1$EnvironmentSatisfaction <- as.numeric(employee1$EnvironmentSatisfaction)
+employee1$JobSatisfaction <- as.numeric(employee1$JobSatisfaction)
+employee1$WorkLifeBalance <- as.numeric(employee1$WorkLifeBalance) 
+
 
 employee_numeric <- sapply(employee1,function(x)is.numeric(x))
 employee_numeric_df <- employee1[,employee_numeric]  #getting subset of of all numeric variables
 employee1[,employee_numeric] <- lapply(employee_numeric_df,function(x) scale(x))
+
 
 #2. converting target variable Attrition from No/Yes character to factorwith levels 0/1 
 employee1$Attrition<- ifelse(employee1$Attrition=="Yes",1,0)
@@ -459,6 +482,7 @@ attrition # 16.12% attrition rate rate.
 #4. Converting the factor variables to random variables
 employee_fact <- sapply(employee1,is.factor)
 employee_fact_df <- employee1[,employee_fact]
+
 
 dummies <- data.frame(sapply(employee_fact_df,function(x) model.matrix(~x-1,data =employee_fact_df) [,-1]))
 
@@ -483,380 +507,372 @@ test = employee_final[!(indices),]
 #Initial model
 model_1 = glm(Attrition ~ ., data = train, family = "binomial")
 summary(model_1) 
-#AIC 2128.6..nullDev 2690.2...resDev 1988.6
+#AIC: 2159
 
 # Stepwise selection
 model_2<- stepAIC(model_1, direction="both")
-summary(model_2) #AIC: 2079.2,  Null deviance: 2690.2,Residual deviance: 2005.2
-sort(vif(model_2)) #`Oct _hours` has the highest VIF of 7.66
+summary(model_2) #AIC: 2124.2
+sort(vif(model_2)) 
 
-#model_3 :Exluding Dec _hours , as it had high VIF as well as insignificant
-model_3 <- glm(formula = Attrition ~ Age + NumCompaniesWorked + TotalWorkingYears + 
-                 TrainingTimesLastYear + YearsAtCompany + YearsSinceLastPromotion + 
-                 YearsWithCurrManager + `Oct _hours`  + no_of_leaves + 
+#model_3 :Exluding monthly income , as it had high VIF as well as insignificant
+model_3 <- glm(formula = Attrition ~ Age + DistanceFromHome + 
+                 NumCompaniesWorked + TotalWorkingYears + TrainingTimesLastYear + 
+                 YearsSinceLastPromotion + YearsWithCurrManager + EnvironmentSatisfaction + 
+                 JobSatisfaction + WorkLifeBalance + `Oct _hours` + comparatio_by_jobrole + 
                  BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely + 
-                 Department.xResearch...Development + Department.xSales + 
-                 Education.x2 + EducationField.xMarketing + EducationField.xTechnical.Degree + 
-                 JobLevel.x2 + JobLevel.x5 + JobRole.xLaboratory.Technician + 
-                 JobRole.xManufacturing.Director + JobRole.xResearch.Director + 
-                 JobRole.xResearch.Scientist + JobRole.xSales.Executive + 
-                 MaritalStatus.xMarried + MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                 EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                 JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                 WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 + 
-                 JobInvolvement.x3, family = "binomial", data = train)
+                 EducationField.xLife.Sciences + EducationField.xMarketing + 
+                 EducationField.xMedical + EducationField.xOther + EducationField.xTechnical.Degree + 
+                 JobRole.xLaboratory.Technician + JobRole.xResearch.Director + 
+                 JobRole.xSales.Executive + MaritalStatus.xSingle, family = "binomial", 
+               data = train)
+
 
 summary(model_3)
-#AIC: 2079.9,Null deviance: 2690.2,Residual deviance: 2007.9
+#AIC: 2128.3
 sort(vif(model_3)) # YearsAtCompany  has VIF of 4.998896 
 
-#model_4 : Excluding Education.x2 as it has high P value and coming as insignificant
-model_4<- glm(formula = Attrition ~ Age + NumCompaniesWorked + TotalWorkingYears + 
-                 TrainingTimesLastYear + YearsAtCompany + YearsSinceLastPromotion + 
-                 YearsWithCurrManager + `Oct _hours`  + no_of_leaves + 
+#model_4 : Excluding comparatio_by_jobrole  as it has high P value and coming as insignificant
+model_4<-  glm(formula = Attrition ~ Age + DistanceFromHome + 
+                 NumCompaniesWorked + TotalWorkingYears + TrainingTimesLastYear + 
+                 YearsSinceLastPromotion + YearsWithCurrManager + EnvironmentSatisfaction + 
+                 JobSatisfaction + WorkLifeBalance + `Oct _hours`  + 
                  BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely + 
-                 Department.xResearch...Development + Department.xSales + 
-                 EducationField.xMarketing + EducationField.xTechnical.Degree + 
-                 JobLevel.x2 + JobLevel.x5 + JobRole.xLaboratory.Technician + 
-                 JobRole.xManufacturing.Director + JobRole.xResearch.Director + 
-                 JobRole.xResearch.Scientist + JobRole.xSales.Executive + 
-                 MaritalStatus.xMarried + MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                 EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                 JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                 WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 + 
-                 JobInvolvement.x3, family = "binomial", data = train)
+                 EducationField.xLife.Sciences + EducationField.xMarketing + 
+                 EducationField.xMedical + EducationField.xOther + EducationField.xTechnical.Degree + 
+                 JobRole.xLaboratory.Technician + JobRole.xResearch.Director + 
+                 JobRole.xSales.Executive + MaritalStatus.xSingle, family = "binomial", 
+               data = train)
 
-summary(model_4) # AIC: 2079.9,  Null deviance: 2690.2,Residual deviance: 2009.9
+summary(model_4) # AIC: 2127.6
+
 sort(vif(model_4))
 
-#model_5 : Excluding  EducationField.xMarketing as it has P value >0.05 
+#model_5 : Excluding  JobRole.xLaboratory.Technician   as it has P value >0.05 
 
-model_5<- glm(formula = Attrition ~ Age + NumCompaniesWorked + TotalWorkingYears + 
-                TrainingTimesLastYear + YearsAtCompany + YearsSinceLastPromotion + 
-                YearsWithCurrManager + `Oct _hours`  + no_of_leaves + 
-                BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely + 
-                Department.xResearch...Development + Department.xSales + 
-                EducationField.xTechnical.Degree + 
-                JobLevel.x2 + JobLevel.x5 + JobRole.xLaboratory.Technician + 
-                JobRole.xManufacturing.Director + JobRole.xResearch.Director + 
-                JobRole.xResearch.Scientist + JobRole.xSales.Executive + 
-                MaritalStatus.xMarried + MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 + 
-                JobInvolvement.x3, family = "binomial", data = train)
+model_5<-  glm(formula = Attrition ~ Age + DistanceFromHome + 
+                 NumCompaniesWorked + TotalWorkingYears + TrainingTimesLastYear + 
+                 YearsSinceLastPromotion + YearsWithCurrManager + EnvironmentSatisfaction + 
+                 JobSatisfaction + WorkLifeBalance + `Oct _hours`  + 
+                 BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely + 
+                 EducationField.xLife.Sciences + EducationField.xMarketing + 
+                 EducationField.xMedical + EducationField.xOther + EducationField.xTechnical.Degree + 
+                 JobRole.xResearch.Director + 
+                 JobRole.xSales.Executive + MaritalStatus.xSingle, family = "binomial", 
+               data = train)
 
-summary(model_5) #AIC: 2081.2 ,Null deviance: 2690.2,Residual deviance: 2013.2 
+summary(model_5) #AIC: 2128.4
 sort(vif(model_5))
 
-#model_6: Excluding JobLevel.x2 as it has P value of 0.06 (>0.05)
-model_6 <- glm(formula = Attrition ~ Age + NumCompaniesWorked + TotalWorkingYears + 
-                 TrainingTimesLastYear + YearsAtCompany + YearsSinceLastPromotion + 
-                 YearsWithCurrManager + `Oct _hours`  + no_of_leaves + 
+#model_6: Excluding DistanceFromHome    as it has P value of  (>0.05)
+model_6 <- glm(formula = Attrition ~ Age  + NumCompaniesWorked + TotalWorkingYears + TrainingTimesLastYear + 
+                 YearsSinceLastPromotion + YearsWithCurrManager + EnvironmentSatisfaction + 
+                 JobSatisfaction + WorkLifeBalance + `Oct _hours`  + 
                  BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely + 
-                 Department.xResearch...Development + Department.xSales + 
-                 EducationField.xTechnical.Degree + 
-                 JobLevel.x5 + JobRole.xLaboratory.Technician + 
-                 JobRole.xManufacturing.Director + JobRole.xResearch.Director + 
-                 JobRole.xResearch.Scientist + JobRole.xSales.Executive + 
-                 MaritalStatus.xMarried + MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                 EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                 JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                 WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 + 
-                 JobInvolvement.x3, family = "binomial", data = train)
+                 EducationField.xLife.Sciences + EducationField.xMarketing + 
+                 EducationField.xMedical + EducationField.xOther + EducationField.xTechnical.Degree + 
+                 JobRole.xResearch.Director + 
+                 JobRole.xSales.Executive + MaritalStatus.xSingle, family = "binomial", 
+               data = train)
 
-summary(model_6) #AIC: 2082.6 ,Null deviance: 2690.2,Residual deviance: 2016.6
+summary(model_6) #AIC: 2130.2
 sort(vif(model_6))
 
-#model_7 : Excluding JobRole.xResearch.Scientist  as it has comparitively high P value of 0.058877
-model_7 <- glm(formula = Attrition ~ Age + NumCompaniesWorked + TotalWorkingYears + 
-                 TrainingTimesLastYear + YearsAtCompany + YearsSinceLastPromotion + 
-                 YearsWithCurrManager + `Oct _hours`  + no_of_leaves + 
+#model_7 : Excluding JobRole.xResearch.Director    as it has comparitively high P value 
+model_7 <- glm(formula = Attrition ~ Age  + NumCompaniesWorked + TotalWorkingYears + TrainingTimesLastYear + 
+                 YearsSinceLastPromotion + YearsWithCurrManager + EnvironmentSatisfaction + 
+                 JobSatisfaction + WorkLifeBalance + `Oct _hours`  + 
                  BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely + 
-                 Department.xResearch...Development + Department.xSales + 
-                 EducationField.xTechnical.Degree + 
-                 JobLevel.x5 + JobRole.xLaboratory.Technician + 
-                 JobRole.xManufacturing.Director + JobRole.xResearch.Director +JobRole.xSales.Executive + 
-                 MaritalStatus.xMarried + MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                 EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                 JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                 WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 + 
-                 JobInvolvement.x3, family = "binomial", data = train)
-
-summary(model_7) # AIC: 2084.1 , Null deviance: 2690.2,Residual deviance: 2020.1
+                 EducationField.xLife.Sciences + EducationField.xMarketing + 
+                 EducationField.xMedical + EducationField.xOther + EducationField.xTechnical.Degree + 
+                 JobRole.xSales.Executive + MaritalStatus.xSingle, family = "binomial", 
+               data = train)
+summary(model_7) # AIC: 2133.3
 sort(vif(model_7)) 
 
-#model_8 : Excluding JobRole.xLaboratory.Technician  of its high P value of  0.073215
-model_8 <-  glm(formula = Attrition ~ Age + NumCompaniesWorked + TotalWorkingYears + 
-                  TrainingTimesLastYear + YearsAtCompany + YearsSinceLastPromotion + 
-                  YearsWithCurrManager + `Oct _hours`  + no_of_leaves + 
+#model_8 : Excluding JobRole.xSales.Executive   of its high P value 
+model_8 <-  glm(formula = Attrition ~ Age  + NumCompaniesWorked + TotalWorkingYears + TrainingTimesLastYear + 
+                  YearsSinceLastPromotion + YearsWithCurrManager + EnvironmentSatisfaction + 
+                  JobSatisfaction + WorkLifeBalance + `Oct _hours`  + 
                   BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely + 
-                  Department.xResearch...Development + Department.xSales + 
-                  EducationField.xTechnical.Degree + JobLevel.x5 +  
-                  JobRole.xManufacturing.Director + JobRole.xResearch.Director +JobRole.xSales.Executive + 
-                  MaritalStatus.xMarried + MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                  JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                  WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 + 
-                  JobInvolvement.x3, family = "binomial", data = train)
+                  EducationField.xLife.Sciences + EducationField.xMarketing + 
+                  EducationField.xMedical + EducationField.xOther + EducationField.xTechnical.Degree + 
+                  MaritalStatus.xSingle, family = "binomial", 
+                data = train)
 
-summary(model_8) #AIC: 2085.3,Null deviance: 2690.2,Residual deviance: 2023.3
+summary(model_8) #AIC: 2135.1
 sort(vif(model_8))
 
-#model_9: Excluding no_of_leaves  for its low significane (P value=0.050903 .)
-model_9 <-  glm(formula = Attrition ~ Age + NumCompaniesWorked + TotalWorkingYears + 
-                  TrainingTimesLastYear + YearsAtCompany + YearsSinceLastPromotion + 
-                  YearsWithCurrManager + `Oct _hours`  + 
-                  BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely + 
-                  Department.xResearch...Development + Department.xSales + 
-                  EducationField.xTechnical.Degree + JobLevel.x5 +  
-                  JobRole.xManufacturing.Director + JobRole.xResearch.Director +JobRole.xSales.Executive + 
-                  MaritalStatus.xMarried + MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                  JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                  WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 + 
-                  JobInvolvement.x3, family = "binomial", data = train)
+#model_9: Excluding EducationField.xLife.Sciences for its high VIF
+model_9 <- glm(formula = Attrition ~ Age  + NumCompaniesWorked + TotalWorkingYears + TrainingTimesLastYear + 
+                 YearsSinceLastPromotion + YearsWithCurrManager + EnvironmentSatisfaction + 
+                 JobSatisfaction + WorkLifeBalance + `Oct _hours`  + 
+                 BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely +  EducationField.xMarketing + 
+                 EducationField.xMedical + EducationField.xOther + EducationField.xTechnical.Degree + 
+                 MaritalStatus.xSingle, family = "binomial", 
+               data = train)
 
-summary(model_9) #AIC: 2087.1,Null deviance: 2690.2,Residual deviance: 2027.1
+summary(model_9) #AIC: 2142.3
 sort(vif(model_9)) 
 
-#model_10 : Excluding MaritalStatus.xMarried  as it has relatively higher VIF 
-model_10 <-  glm(formula = Attrition ~ Age + NumCompaniesWorked + TotalWorkingYears + 
-                  TrainingTimesLastYear + YearsAtCompany + YearsSinceLastPromotion + 
-                  YearsWithCurrManager + `Oct _hours`  + 
-                  BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely + 
-                  Department.xResearch...Development + Department.xSales + 
-                  EducationField.xTechnical.Degree + JobLevel.x5 +  
-                  JobRole.xManufacturing.Director + JobRole.xResearch.Director +JobRole.xSales.Executive + 
-                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                  JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                  WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 + 
-                  JobInvolvement.x3, family = "binomial", data = train)
+#model_10 : Excluding EducationField.xMedical   because of high P value
+model_10 <-  glm(formula = Attrition ~ Age  + NumCompaniesWorked + TotalWorkingYears + TrainingTimesLastYear + 
+                   YearsSinceLastPromotion + YearsWithCurrManager + EnvironmentSatisfaction + 
+                   JobSatisfaction + WorkLifeBalance + `Oct _hours`  + 
+                   BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely +  EducationField.xMarketing + 
+                   EducationField.xOther + EducationField.xTechnical.Degree + 
+                   MaritalStatus.xSingle, family = "binomial", 
+                 data = train)
 
-summary(model_10) #AIC: 2089.8, Null deviance: 2690.2,Residual deviance: 2031.8 
+summary(model_10) #AIC: 2141
 sort(vif(model_10)) 
 
-#model_11: Exluding JobRole.xResearch.Director because of its low significance(0.018368 *)
-model_11 <-  glm(formula = Attrition ~ Age + NumCompaniesWorked + TotalWorkingYears + 
-                   TrainingTimesLastYear + YearsAtCompany + YearsSinceLastPromotion + 
-                   YearsWithCurrManager + `Oct _hours`  + 
-                   BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely + 
-                   Department.xResearch...Development + Department.xSales + 
-                   EducationField.xTechnical.Degree + JobLevel.x5 +  
-                   JobRole.xManufacturing.Director  +JobRole.xSales.Executive + 
-                   MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                   EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                   JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                   WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 + 
-                   JobInvolvement.x3, family = "binomial", data = train)
+#model_11: Exluding EducationField.xMarketing because of its low significance(0.289479)
+model_11 <- glm(formula = Attrition ~ Age  + NumCompaniesWorked + TotalWorkingYears + TrainingTimesLastYear + 
+                  YearsSinceLastPromotion + YearsWithCurrManager + EnvironmentSatisfaction + 
+                  JobSatisfaction + WorkLifeBalance + `Oct _hours`  + 
+                  BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely + 
+                  EducationField.xOther + EducationField.xTechnical.Degree + 
+                  MaritalStatus.xSingle, family = "binomial", 
+                data = train)
 
-summary(model_11) #AIC: 2093.1,Residual deviance: 2037.1 
+summary(model_11) #AIC: 2140.1
 sort(vif(model_11)) 
 
-#model_12: Excluding JobRole.xSales.Executive because of its low significance(0.019654 *)
-model_12 <-  glm(formula = Attrition ~ Age + NumCompaniesWorked + TotalWorkingYears + 
-                   TrainingTimesLastYear + YearsAtCompany + YearsSinceLastPromotion + 
-                   YearsWithCurrManager + `Oct _hours`  + 
-                   BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely + 
-                   Department.xResearch...Development + Department.xSales + 
-                   EducationField.xTechnical.Degree + JobLevel.x5 + JobRole.xManufacturing.Director + 
-                   MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                   EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                   JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                   WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 + 
-                   JobInvolvement.x3, family = "binomial", data = train)
+#model_12: Excluding EducationField.xOther because of its low significance(0.22)
+model_12 <- glm(formula = Attrition ~ Age  + NumCompaniesWorked + TotalWorkingYears + TrainingTimesLastYear + 
+                  YearsSinceLastPromotion + YearsWithCurrManager + EnvironmentSatisfaction + 
+                  JobSatisfaction + WorkLifeBalance + `Oct _hours`  + 
+                  BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely +  EducationField.xTechnical.Degree + 
+                  MaritalStatus.xSingle, family = "binomial", 
+                data = train)
 
-summary(model_12) #AIC: 2096.4,Residual deviance: 2042.4
+summary(model_12) #AIC: 2139.7
 sort(vif(model_12))  
 
-#model_13 : Excluding JobLevel.x5 because of its low significance(0.019773 *)
-model_13 <-  glm(formula = Attrition ~ Age + NumCompaniesWorked + TotalWorkingYears + 
-                   TrainingTimesLastYear + YearsAtCompany + YearsSinceLastPromotion + 
-                   YearsWithCurrManager + `Oct _hours`  + 
-                   BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely + 
-                   Department.xResearch...Development + Department.xSales + 
-                   EducationField.xTechnical.Degree +  JobRole.xManufacturing.Director + 
-                   MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                   EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                   JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                   WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 + 
-                   JobInvolvement.x3, family = "binomial", data = train)
-summary(model_13) #AIC:  2100.6,Residual deviance: 2048.6
+#model_13 : Excluding EducationField.xTechnical.Degree because of its low significance(0.07)
+model_13 <-  glm(formula = Attrition ~ Age  + NumCompaniesWorked + TotalWorkingYears + TrainingTimesLastYear + 
+                   YearsSinceLastPromotion + YearsWithCurrManager + EnvironmentSatisfaction + 
+                   JobSatisfaction + WorkLifeBalance + `Oct _hours`  + 
+                   BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely +
+                   MaritalStatus.xSingle, family = "binomial", 
+                 data = train)
+summary(model_13) #AIC: 2141.1
 sort(vif(model_13))
 
-#model_14 : Excluding EducationField.xTechnical.Degree    because of its low significance( 0.054731 .)
-model_14 <-  glm(formula = Attrition ~ Age + NumCompaniesWorked + TotalWorkingYears + 
-                   TrainingTimesLastYear + YearsAtCompany + YearsSinceLastPromotion + 
-                   YearsWithCurrManager + `Oct _hours`  + 
-                   BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely + 
-                   Department.xResearch...Development + Department.xSales + JobRole.xManufacturing.Director + 
-                   MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                   EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                   JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                   WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 + 
-                   JobInvolvement.x3, family = "binomial", data = train)
-summary(model_14) #AIC: 2102.5,Residual deviance: 2052.5
+#model_14 : Excluding BusinessTravel.xTravel_Rarely    because of its high VIF
+model_14 <-   glm(formula = Attrition ~ Age  + NumCompaniesWorked + TotalWorkingYears + TrainingTimesLastYear + 
+                    YearsSinceLastPromotion + YearsWithCurrManager + EnvironmentSatisfaction + 
+                    JobSatisfaction + WorkLifeBalance + `Oct _hours`  + 
+                    BusinessTravel.xTravel_Frequently  +
+                    MaritalStatus.xSingle, family = "binomial", 
+                  data = train)
+summary(model_14) #AIC: 2151.6
 sort(vif(model_14))
 
-#model_15 :Excluding Age because of its low significance (0.049830 *)
-model_15 <-  glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
-                   TrainingTimesLastYear + YearsAtCompany + YearsSinceLastPromotion + 
-                   YearsWithCurrManager + `Oct _hours`  + 
-                   BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely + 
-                   Department.xResearch...Development + Department.xSales + JobRole.xManufacturing.Director + 
-                   MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                   EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                   JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                   WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 + 
-                   JobInvolvement.x3, family = "binomial", data = train)
-summary(model_15) #AIC: 2112.4,Residual deviance: 2064.4
+#model_15 :Excluding TrainingTimesLastYear   because of its low significance
+model_15 <-  glm(formula = Attrition ~ Age  + NumCompaniesWorked + TotalWorkingYears +
+                   YearsSinceLastPromotion + YearsWithCurrManager + EnvironmentSatisfaction + 
+                   JobSatisfaction + WorkLifeBalance + `Oct _hours`  + 
+                   BusinessTravel.xTravel_Frequently  +
+                   MaritalStatus.xSingle, family = "binomial", 
+                 data = train)
+
+summary(model_15) #AIC: 2159.2
 sort(vif(model_15))
 
-#model_16: Excluding YearsAtCompany  because of its high VIF (4.717426)
-model_16 <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
-                  TrainingTimesLastYear + YearsSinceLastPromotion + 
-                  YearsWithCurrManager + `Oct _hours`  + 
-                  BusinessTravel.xTravel_Frequently + BusinessTravel.xTravel_Rarely + 
-                  Department.xResearch...Development + Department.xSales + JobRole.xManufacturing.Director + 
-                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                  JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                  WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 + 
-                  JobInvolvement.x3, family = "binomial", data = train)
-summary(model_16) #AIC:  2120.1,Residual deviance: 2074.1 
-sort(vif(model_16))
+#Output of the final model
+# Coefficients:
+#   Estimate Std. Error z value Pr(>|z|)    
+# (Intercept)                       -2.70424    0.09666 -27.977  < 2e-16 ***
+#   Age                               -0.38839    0.08072  -4.812 1.50e-06 ***
+#   NumCompaniesWorked                 0.33465    0.05856   5.715 1.10e-08 ***
+#   TotalWorkingYears                 -0.42701    0.10843  -3.938 8.21e-05 ***
+#   YearsSinceLastPromotion            0.54920    0.07345   7.477 7.58e-14 ***
+#   YearsWithCurrManager              -0.53412    0.08426  -6.339 2.31e-10 ***
+#   EnvironmentSatisfaction           -0.37600    0.05595  -6.721 1.81e-11 ***
+#   JobSatisfaction                   -0.34356    0.05487  -6.261 3.82e-10 ***
+#   WorkLifeBalance                   -0.22875    0.05498  -4.161 3.17e-05 ***
+#   `Oct _hours`                       0.63607    0.05418  11.740  < 2e-16 ***
+#   BusinessTravel.xTravel_Frequently  0.87474    0.12758   6.856 7.07e-12 ***
+#   MaritalStatus.xSingle              1.05283    0.11366   9.263  < 2e-16 ***
+#   ---
 
-#model_17 : Excluding BusinessTravel.xTravel_Rarely because of its low significance (P value=0.010371 *)
-model_17 <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
-                  TrainingTimesLastYear + YearsSinceLastPromotion + 
-                  YearsWithCurrManager + `Oct _hours`  +  BusinessTravel.xTravel_Frequently  + 
-                  Department.xResearch...Development + Department.xSales + JobRole.xManufacturing.Director + 
-                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                  JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                  WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 + 
-                  JobInvolvement.x3, family = "binomial", data = train)
-summary(model_17) #AIC : 2125.3,Residual deviance: 2081.3 
-sort(vif(model_17))
+# With 11 significant variables in the model and all with low VIF's will consider model_15 as the final 
+#model
 
-#model_18: Excluding JobInvolvement.x3  because of its relatively lower significance (P value=0.002290 **)
-model_18 <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
-                  TrainingTimesLastYear + YearsSinceLastPromotion + 
-                  YearsWithCurrManager + `Oct _hours`  +  BusinessTravel.xTravel_Frequently  + 
-                  Department.xResearch...Development + Department.xSales + JobRole.xManufacturing.Director + 
-                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                  JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                  WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 , family = "binomial", data = train)
-summary(model_18) #AIC=: 2132.6,Residual deviance: 2090.6
-#We now have a model with all significant (Low p value ***), but in order to simplify the model further , we will go ahead and remove 
-#few more variables in order of VIF
-sort(vif(model_18)) #Department.xSales has high VIF of 3.798783 
+final_model<- model_15
 
-#model_19 :Excluding Department.xSales  because of its high VIF 
-model_19 <-  glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
-                   TrainingTimesLastYear + YearsSinceLastPromotion + 
-                   YearsWithCurrManager + `Oct _hours`  +  BusinessTravel.xTravel_Frequently  + 
-                   Department.xResearch...Development + JobRole.xManufacturing.Director + 
-                   MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                   EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                   JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                   WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 , family = "binomial", data = train)
-summary(model_19) #AIC= 2155.4,Residual deviance: 2115.4 
-sort(vif(model_19))
+#----------------------------------------------------------------------------------------------------------------------------
+#                             MODEL EVALUATION BEGINS HERE
+#-----------------------------------------------------------------------------------------------------------------------------
 
-#model_20: Excluding Department.xResearch...Development  because of its high P value of 0.302546
-model_20 <-  glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
-                   TrainingTimesLastYear + YearsSinceLastPromotion + 
-                   YearsWithCurrManager + `Oct _hours`  +  BusinessTravel.xTravel_Frequently+JobRole.xManufacturing.Director + 
-                   MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                   EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                   JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                   WorkLifeBalance.x2 + WorkLifeBalance.x3 + WorkLifeBalance.x4 , family = "binomial", data = train)
+#Test data
 
-summary(model_20) #AIC: 2154.4,Residual deviance: 2116.4
-sort(vif(model_20))
+#predicted probabilities of for attrition = 1 in test data
 
-#model_21: Excluding WorkLifeBalance.x3  because of its high VIF of 3.587488 
-model_21 <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
-                  TrainingTimesLastYear + YearsSinceLastPromotion + 
-                  YearsWithCurrManager + `Oct _hours`  +  BusinessTravel.xTravel_Frequently+JobRole.xManufacturing.Director + 
-                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                  JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                  WorkLifeBalance.x2  + WorkLifeBalance.x4 , family = "binomial", data = train)
+test_pred = predict(final_model, type = "response", newdata = test[,-2])
 
-summary(model_21) #AIC=2179.5,Residual deviance: 2143.5 
-sort(vif(model_21))
 
-#model_22 : Excluding WorkLifeBalance.x4  because of its high P value of 0.755565 
-model_22 <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
-                  TrainingTimesLastYear + YearsSinceLastPromotion + 
-                  YearsWithCurrManager + `Oct _hours`  +  BusinessTravel.xTravel_Frequently+JobRole.xManufacturing.Director + 
-                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                  JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4 + 
-                  WorkLifeBalance.x2 , family = "binomial", data = train)
-summary(model_22) #AIC=2177.6,Residual deviance: 2143.6
-sort(vif(model_22))
+# Let's see the summary 
+summary(test_pred) #Max= 0.8813696 ,Min=0.0008416
 
-#model_23: Excluding WorkLifeBalance.x2  because of its high P value of  0.317683  
-model_23 <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
-                  TrainingTimesLastYear + YearsSinceLastPromotion + 
-                  YearsWithCurrManager + `Oct _hours`  +  BusinessTravel.xTravel_Frequently+JobRole.xManufacturing.Director + 
-                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                  JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4  , family = "binomial", data = train)
+#Appending the predicted test object test_pred to test dataframe
+test$prob <- test_pred
 
-summary(model_23) #AIC=2177.6,Residual deviance: 2143.6
-#we have 15 variables with all low P values(***)
-sort(vif(model_23)) #all the VIF's are below 15
+# Let's use the probability cutoff of 50%.
 
-#we will try to simplify the model further by using domain understanding and insights from EDA
+test_pred_attrition <- factor(ifelse(test_pred >= 0.50, "Yes", "No"))
+test_actual_attrition <- factor(ifelse(test$Attrition==1,"Yes","No"))
 
-#model_24 :Excluding `Oct _hours`
-model_24 <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
-                  TrainingTimesLastYear + YearsSinceLastPromotion + 
-                  YearsWithCurrManager +  BusinessTravel.xTravel_Frequently+JobRole.xManufacturing.Director + 
-                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                  JobSatisfaction.x2 + JobSatisfaction.x3 + JobSatisfaction.x4  , family = "binomial", data = train)
 
-summary(model_24) #AIC: 2310.3,Residual deviance: 2280.3
-sort(vif(model_24))
+table(test_actual_attrition,test_pred_attrition)
 
-#model_25 : Excluding JobSatisfaction.x2 because of its P value 0.001539 ** 
-model_25 <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
-                  TrainingTimesLastYear + YearsSinceLastPromotion + 
-                  YearsWithCurrManager +  BusinessTravel.xTravel_Frequently+JobRole.xManufacturing.Director + 
-                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                  JobSatisfaction.x3 + JobSatisfaction.x4  , family = "binomial", data = train)
-summary(model_25) #AIC: 2318.4,Residual deviance: 2290.4 
-sort(vif(model_25))
 
-#model_26 : 
+#######################################################################
+#Trying with prediction with a lower cutoff , 0.40
 
-model_25_a <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
-                  TrainingTimesLastYear + YearsSinceLastPromotion + 
-                  YearsWithCurrManager +  BusinessTravel.xTravel_Frequently+JobRole.xManufacturing.Director + 
-                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                  EnvironmentSatisfaction.x3  + 
-                  JobSatisfaction.x3 + JobSatisfaction.x4  , family = "binomial", data = train)
-summary(model_25_a) #AIC : 2360.3,Residual deviance: 2334.3 
-sort(vif(model_25_a))
+test_pred_attrition <- factor(ifelse(test_pred >= 0.40, "Yes", "No"))
 
-model_25_b <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
-                  TrainingTimesLastYear + YearsSinceLastPromotion + 
-                  YearsWithCurrManager +  BusinessTravel.xTravel_Frequently+JobRole.xManufacturing.Director + 
-                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                  JobSatisfaction.x3  , family = "binomial", data = train)
+test_conf <- confusionMatrix(test_actual_attrition ,test_pred_attrition,positive = "Yes")
+test_conf
+#Sensitivity : 0.56154         
+# Specificity : 0.87734         
+# Pos Pred Value : 0.32589         
+# Neg Pred Value : 0.94987
 
-model_25 <- glm(formula = Attrition ~ NumCompaniesWorked + TotalWorkingYears + 
-                  TrainingTimesLastYear + 
-                  YearsWithCurrManager +  BusinessTravel.xTravel_Frequently+JobRole.xManufacturing.Director + 
-                  MaritalStatus.xSingle + EnvironmentSatisfaction.x2 + 
-                  EnvironmentSatisfaction.x3 + EnvironmentSatisfaction.x4 + 
-                  JobSatisfaction.x3 + JobSatisfaction.x4  , family = "binomial", data = train)
+
+###########################################################################3
+# Let's find out the optimal probalility cutoff 
+
+perform_fn <- function(cutoff) 
+{
+  predicted_attrition <- factor(ifelse(test_pred >= cutoff, "Yes", "No"))
+  conf <- confusionMatrix( predicted_attrition,test_actual_attrition,positive = "Yes")
+  acc <- conf$overall[1]
+  sens <- conf$byClass[1]
+  spec <- conf$byClass[2]
+  out <- t(as.matrix(c(sens, spec, acc))) 
+  colnames(out) <- c("sensitivity", "specificity", "accuracy")
+  return(out)
+}
+
+# Creating cutoff values from 0.01 to 0.80 for plotting and initiallizing a matrix of 100 X 3.
+
+# Summary of test probability
+
+summary(test_pred)
+
+s = seq(0.01,0.80,length=100)
+
+OUT = matrix(0,100,3)
+
+
+for(i in 1:100)
+{
+  OUT[i,] = perform_fn(s[i])
+} 
+
+#Plotting the intercection of the sensitivity , specificity and the accuracy curves
+
+plot(s, OUT[,1],xlab="Cutoff",ylab="Value",cex.lab=1.5,cex.axis=1.5,ylim=c(0,1),type="l",lwd=2,axes=FALSE,col=2)
+axis(1,seq(0,1,length=5),seq(0,1,length=5),cex.lab=1.5)
+axis(2,seq(0,1,length=5),seq(0,1,length=5),cex.lab=1.5)
+lines(s,OUT[,2],col="darkgreen",lwd=2)
+lines(s,OUT[,3],col=4,lwd=2)
+box()
+legend(0,.50,col=c(2,"darkgreen",4,"darkred"),lwd=c(2,2,2,2),c("Sensitivity","Specificity","Accuracy"))
+
+
+cutoff <- s[which(abs(OUT[,1]-OUT[,2]) < 0.01)]
+cutoff #0.1616
+
+
+# Let's choose a cutoff value of 0.16 for final model
+
+test_cutoff_attrition<- factor(ifelse(test_pred >=0.16, "Yes", "No"))
+
+conf_final <- confusionMatrix(test_cutoff_attrition, test_actual_attrition, positive = "Yes")
+
+acc <- conf_final$overall[1] #accuracy=0.722263 
+sens <- conf_final$byClass[1]#sensitivity=0.71875 
+spec <- conf_final$byClass[2]#Specificity =0.7229551 
+
+
+View(test)
+
+##################################################################################################
+### KS -statistic - Test Data ######
+
+test_cutoff_attrition <- ifelse(test_cutoff_attrition=="Yes",1,0)
+test_actual_attrition <- ifelse(test_actual_attrition=="Yes",1,0)
+
+
+#on testing  data
+pred_object_test<- prediction(test_cutoff_attrition, test_actual_attrition)
+
+performance_measures_test<- performance(pred_object_test, "tpr", "fpr")
+
+
+ks_table_test <- attr(performance_measures_test, "y.values")[[1]] - 
+  (attr(performance_measures_test, "x.values")[[1]])
+
+test_ks <- max(ks_table_test)
+
+test_ks # 0.4417051-->Max k statistic for test data
+which(ks_table_test == test_ks) #2-->occurs in the 2nd decile
+
+plot(final_model)
+
+#################################################################################
+
+# Area under the curve (AUC)
+
+auc <- performance(pred_object_test, measure = "auc")
+auc <- unlist(auc@y.values)
+auc # 0.7208526
+
+# AUC >0.70 is a good sign of model's predictive power
+
+## ROC curve
+plot(performance_measures_test,col = "red", lab = c(10,10,10))
+
+################################################################################
+# Lift & Gain Chart 
+
+# plotting the lift chart
+#require dplyr package
+
+lift <- function(labels , predicted_prob,groups=10) {
+  
+  if(is.factor(labels)) labels  <- as.integer(as.character(labels ))
+  if(is.factor(predicted_prob)) predicted_prob <- as.integer(as.character(predicted_prob))
+  helper = data.frame(cbind(labels , predicted_prob))
+  helper[,"bucket"] = ntile(-helper[,"predicted_prob"], groups)
+  gaintable = helper %>% group_by(bucket)  %>%
+    summarise_at(vars(labels ), funs(total = n(),
+                                     totalresp=sum(., na.rm = TRUE))) %>%
+    
+    mutate(Cumresp = cumsum(totalresp),
+           Gain=Cumresp/sum(totalresp)*100,
+           Cumlift=Gain/(bucket*(100/groups))) 
+  return(gaintable)
+}
+
+Churn_decile = lift(test_actual_attrition, test_pred, groups = 10)
+Churn_decile
+
+# bucket total totalresp Cumresp      Gain  Cumlift
+# <int> <int>     <dbl>   <dbl>     <dbl>    <dbl>
+# 1      1   137        75      75  33.48214 3.348214
+# 2      2   136        52     127  56.69643 2.834821
+# 3      3   136        24     151  67.41071 2.247024
+# 4      4   136        19     170  75.89286 1.897321
+# 5      5   136        11     181  80.80357 1.616071
+# 6      6   136         8     189  84.37500 1.406250
+# 7      7   136        14     203  90.62500 1.294643
+# 8      8   136         8     211  94.19643 1.177455
+# 9      9   136        10     221  98.66071 1.096230
+# 10    10   136         3     224 100.00000 1.000000
+
+#--------------------------MODEL EVALUATION ENDS HERE---------------------------------------------
+
