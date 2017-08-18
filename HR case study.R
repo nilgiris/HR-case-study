@@ -280,6 +280,10 @@ employee1 <- employee1[,-which(names(employee1)=="Over18")]
 
 #1. Lets analyze the categorical features in a bar chart grid view as follows:
 
+#Univariate analysis metrics:
+summary(employee1)
+
+#Bivariate Analysis #Studying each variable wrt Attrition:
 
 Businesstravel_plot <- ggplot(employee1, aes(x=BusinessTravel,fill=Attrition))+ geom_bar(position="fill")
 department_plot <-  ggplot(employee1, aes(x=Department,fill=Attrition))+ geom_bar(position="fill") 
@@ -432,14 +436,14 @@ Sales_Representative_med_Salary <- jobrole_median_salary[which(jobrole_median_sa
 
 
 #calculating compa ratio by job role:
-employee1$comparatio_by_jobrole <-  round( ifelse(employee1$JobRole=="Healthcare Representative",employee1$MonthlyIncome/Healthcare_Representative_med_salary,
-                                                  ifelse(employee1$JobRole=="Human Resources",employee1$MonthlyIncome/HR_med_salary,
-                                                         ifelse(employee1$JobRole=="Laboratory Technician",employee1$MonthlyIncome/labtech_med_salary,
-                                                                ifelse(employee1$JobRole=="Manager",employee1$MonthlyIncome/manager_med_salary,
-                                                                       ifelse(employee1$JobRole=="Manufacturing Director",employee1$MonthlyIncome/manufactdirector_med_salary,
-                                                                              ifelse(employee1$JobRole=="Research Director",employee1$MonthlyIncome/research_director_med_salary,
-                                                                                     ifelse(employee1$JobRole=="Research Scientist",employee1$MonthlyIncome/research_scientist_med_Salary,
-                                                                                            ifelse(employee1$JobRole=="Sales Executive",employee1$MonthlyIncome/Sales_Executive_med_Salary,employee1$MonthlyIncome/Sales_Representative_med_Salary)))))))),2)
+employee1$comparatio_by_jobrole <-  round(  ifelse(employee1$JobRole=="Healthcare Representative",employee1$MonthlyIncome/Healthcare_Representative_med_salary,
+                                            ifelse(employee1$JobRole=="Human Resources",employee1$MonthlyIncome/HR_med_salary,
+                                            ifelse(employee1$JobRole=="Laboratory Technician",employee1$MonthlyIncome/labtech_med_salary,
+                                            ifelse(employee1$JobRole=="Manager",employee1$MonthlyIncome/manager_med_salary,
+                                            ifelse(employee1$JobRole=="Manufacturing Director",employee1$MonthlyIncome/manufactdirector_med_salary,
+                                            ifelse(employee1$JobRole=="Research Director",employee1$MonthlyIncome/research_director_med_salary,
+                                            ifelse(employee1$JobRole=="Research Scientist",employee1$MonthlyIncome/research_scientist_med_Salary,
+                                            ifelse(employee1$JobRole=="Sales Executive",employee1$MonthlyIncome/Sales_Executive_med_Salary,employee1$MonthlyIncome/Sales_Representative_med_Salary)))))))),2)
 
 
 #Now that we have plotted the compa ratio at the Job level, lets plot to see the pattern of attrition
@@ -819,9 +823,9 @@ ks_table_test <- attr(performance_measures_test, "y.values")[[1]] -
 test_ks <- max(ks_table_test)
 
 test_ks # 0.4417051-->Max k statistic for test data
-which(ks_table_test == test_ks) #2-->occurs in the 2nd decile
 
-plot(final_model)
+
+
 
 #################################################################################
 
@@ -834,7 +838,8 @@ auc # 0.7208526
 # AUC >0.70 is a good sign of model's predictive power
 
 ## ROC curve
-plot(performance_measures_test,col = "red", lab = c(10,10,10))
+plot(performance_measures_test, col = "red", main = "ROC Curve for test data")
+abline(0, 1, lty = 8, col = "blue")
 
 ################################################################################
 # Lift & Gain Chart 
@@ -858,21 +863,20 @@ lift <- function(labels , predicted_prob,groups=10) {
   return(gaintable)
 }
 
-Churn_decile = lift(test_actual_attrition, test_pred, groups = 10)
-Churn_decile
+attrition_decile = lift(test_actual_attrition, test_pred, groups = 10)
+attrition_decile
 
-# bucket total totalresp Cumresp      Gain  Cumlift
-# <int> <int>     <dbl>   <dbl>     <dbl>    <dbl>
-# 1      1   137        75      75  33.48214 3.348214
-# 2      2   136        52     127  56.69643 2.834821
-# 3      3   136        24     151  67.41071 2.247024
-# 4      4   136        19     170  75.89286 1.897321
-# 5      5   136        11     181  80.80357 1.616071
-# 6      6   136         8     189  84.37500 1.406250
-# 7      7   136        14     203  90.62500 1.294643
-# 8      8   136         8     211  94.19643 1.177455
-# 9      9   136        10     221  98.66071 1.096230
-# 10    10   136         3     224 100.00000 1.000000
+#for calculating the decile which has maximum KS statistic value
+
+attrition_decile$total_nonresp <- attrition_decile$total -attrition_decile$totalresp
+attrition_decile$Cum_nonresp <- cumsum(attrition_decile$total_nonresp)
+attrition_decile$percent_cum_nonresp <- attrition_decile$Cum_nonresp/sum(attrition_decile$total_nonresp)*100
+attrition_decile$KS_statistic <- attrition_decile$Gain - attrition_decile$percent_cum_nonresp
+View(attrition_decile)
+which.max(attrition_decile$KS_statistic)#2
+max(attrition_decile$KS_statistic)#46.52752
+
+#The maximum KS_statistic is 46.42% and appears in the second decile.
 
 #--------------------------MODEL EVALUATION ENDS HERE---------------------------------------------
 
