@@ -45,6 +45,9 @@
 #install.packages("e1071")
 #install.packages("ROCR")
 
+#Please note that there could be an error loading the grid plot and this happens intermittantly,
+#in case of the error, please run the command dev.off()
+
 library(MASS)
 library(car)
 library(e1071)
@@ -117,6 +120,8 @@ which(names(employee) == "X2015.12.31.y") #527
 #c) subsetting only the date/time columns to convert to date-time format
 employee_date_time <- employee[,30:527]  #there are 498 columns
 employee[,30:527] <- lapply(employee_date_time,function(x) ymd_hms(x))
+
+#Verifying the date objects are stored correctly
 type_of <- sapply(employee[,30:527],typeof) # Columns 30 to 527 are converted to double type
 class_of<- sapply(employee[,30:527],class)  # Columns 30 to 527 are converted to "POSIXt POSIXct"
 
@@ -179,11 +184,18 @@ employee1 <- cbind(employee1,number_of_leaves)
 #1. The rows and columns are consistent in terms of numbers. There are no missing rows and columns, 
 #   summary rows,misaligned rows,extra rows,missing column name
 #--------------------------------------------------------------------------------------------------------------
-#2. Dealing with missing values.
+#2. Dealing with missing values(Imputing the NA's)
 sum(is.na(employee1)) #there are now 111 NA's in the entire dataframe,lets check which columns contain the NA's
 
 na_columns <- sapply(employee1,function(x) sum(is.na(x)))
 na_columns #NumCompaniesWorked has 19 NA's,EnvironmentSatisfaction has 25 NA's,JobSatisfaction has 20 NA's, WorkLifeBalance has 38 NA's,TotalWorkingYears has 9 NA's
+
+
+#1. For imputing the categorical variables: We replaced the NA's with the mode, i.e the value that appears most time.In absence of any other information, 
+#this provides the most likely answer
+
+#2.We chose the median imputation for NA's in continous variables. As median imputation will work better because it is a number that is already present in the data set and is less susceptible to outlier errors as compared to mean imputation.
+
 
 #lets examine the structure of above variables
 #a) numberofcompaniesworked
@@ -308,11 +320,11 @@ PerformanceRating_plot <-ggplot(employee1, aes(x=PerformanceRating,fill=Attritio
 grid.arrange(job_satisfaction_Plot,WorkLifeBalance_plot,JobInvolvement_plot,PerformanceRating_plot ,ncol=2,top = "Fig 1d")
 
 #Reveals the following insights with respect to Attrition
-#1. High for those who travelled rarely
-#2. High for Research and Development Department
-#3. High for educational fields as Life sciences and Medical
+#1. High for those who travelled rarely - change to those who travelled frequently 
+#2. High for Research and Development Department - change to HR
+#3. High for educational fields as Life sciences and Medical - change to HR
 #4. High for gender male
-#5. High for job roles as Research scientist, Technician and sales
+#5. High for job roles as Research scientist, Technician and sales - Reserach and Sales roles have higher attrition
 #6. High for marital status single
 
 #-----------------------------------------------------------------------------------------------------------------------------------
