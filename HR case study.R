@@ -45,7 +45,7 @@
 #install.packages("e1071")
 #install.packages("ROCR")
 
-#Please note that there could be an error loading the grid plot and this happens intermittantly,
+#Please note that there could be an error loading the grid plot/ invalid graphics state and this happens intermittantly,
 #in case of the error, please run the command dev.off()
 
 library(MASS)
@@ -364,7 +364,7 @@ grid.arrange(YearAtCom_Plot,YearsSinceProm_Plot,YearsCurrManP_Plot,ncol=2,top = 
 # 2.Years Since Last Promotion: Larger proportion of people who have been promoted recently have quit the company.
 # 3.Years With Current Manager: As expected a new Manager is a strong cause for quitting.
 
-ggplot(employee1,aes(x="Number of leaves",y=employee1$no_of_leaves,fill = Attrition))+ geom_boxplot()
+num_of_leaves <- ggplot(employee1,aes(x="Number of leaves",y=employee1$no_of_leaves,fill = Attrition))+ geom_boxplot()
 # Contrary to the belief, the median number of leaves by proportion of people who have left the company is lower than people who have not left
 
 #Boxplots for actual working hours for each months
@@ -459,7 +459,7 @@ employee1$comparatio_by_jobrole <-  round(  ifelse(employee1$JobRole=="Healthcar
 
 
 #Now that we have plotted the compa ratio at the Job level, lets plot to see the pattern of attrition
-ggplot(employee1,aes(comparatio_by_jobrole))+geom_density()+facet_grid(~Attrition)
+compa_ratio_plot <- ggplot(employee1,aes(comparatio_by_jobrole))+geom_density()+facet_grid(~Attrition)
 #People with lower comparatio have a high attrition rate indicating dissatisfaction towards the salary being drawn
 
 
@@ -693,8 +693,20 @@ model_15 <-  glm(formula = Attrition ~ Age  + NumCompaniesWorked + TotalWorkingY
                    MaritalStatus.xSingle, family = "binomial", 
                  data = train)
 
-summary(model_15) #AIC: 2159.2
+summary(model_15) 
 sort(vif(model_15))
+
+# Null deviance: 2678.3  on 3048  degrees of freedom
+# Residual deviance: 2135.2  on 3037  degrees of freedom
+# AIC: 2159.2
+
+
+#computing the statistical significance of the deviances using chi sq statistic
+1-pchisq(2678.3 ,3048) #0.99,Null Deviance
+1-pchisq(2135.2 ,3037) #1-->Residual Deviance
+1-pchisq(2678.3-2135.2 ,3038-3037) #0, The difference between Null and Residual deviance
+#This implies the The deviance of the model only with constant term and deviance of the model with 11 independent variables added to it are the same
+
 
 #Output of the final model
 # Coefficients:
@@ -742,6 +754,11 @@ test_actual_attrition <- factor(ifelse(test$Attrition==1,"Yes","No"))
 
 
 table(test_actual_attrition,test_pred_attrition)
+#Sensitivity : 0.25000         
+#Specificity : 0.98329         
+#Pos Pred Value : 0.74667         
+#Neg Pred Value : 0.86936 
+#Accuracy : 0.8626  
 
 
 #######################################################################
@@ -749,12 +766,13 @@ table(test_actual_attrition,test_pred_attrition)
 
 test_pred_attrition <- factor(ifelse(test_pred >= 0.40, "Yes", "No"))
 
-test_conf <- confusionMatrix(test_actual_attrition ,test_pred_attrition,positive = "Yes")
+test_conf <- confusionMatrix(test_pred_attrition,test_actual_attrition ,positive = "Yes")
 test_conf
-#Sensitivity : 0.56154         
-# Specificity : 0.87734         
-# Pos Pred Value : 0.32589         
-# Neg Pred Value : 0.94987
+#Sensitivity :  0.37054            
+# Specificity :0.95427         
+# Pos Pred Value : 0.61481        
+# Neg Pred Value :0.88499 
+#Accuracy : 0.8582 
 
 
 ###########################################################################3
@@ -796,8 +814,7 @@ axis(2,seq(0,1,length=5),seq(0,1,length=5),cex.lab=1.5)
 lines(s,OUT[,2],col="darkgreen",lwd=2)
 lines(s,OUT[,3],col=4,lwd=2)
 box()
-legend(0,.50,col=c(2,"darkgreen",4,"darkred"),lwd=c(2,2,2,2),c("Sensitivity","Specificity","Accuracy"))
-
+legend(.5,.75,col=c(2,"darkgreen",4,"darkred"),lwd=c(2,2,2,2),c("Sensitivity","Specificity","Accuracy"))
 
 cutoff <- s[which(abs(OUT[,1]-OUT[,2]) < 0.01)]
 cutoff #0.1616
@@ -851,7 +868,7 @@ auc # 0.7208526
 
 ## ROC curve
 plot(performance_measures_test, col = "red", main = "ROC Curve for test data")
-abline(0, 1, lty = 8, col = "blue")
+abline(0, 1, lty = 19, col = "blue")
 
 ################################################################################
 # Lift & Gain Chart 
