@@ -853,7 +853,7 @@ ks_table_test <- attr(performance_measures_test, "y.values")[[1]] -
 
 test_ks <- max(ks_table_test)
 
-test_ks # 0.4417051-->Max k statistic for test data
+test_ks #0.4390666-->Max k statistic for test data
 
 
 
@@ -864,7 +864,7 @@ test_ks # 0.4417051-->Max k statistic for test data
 
 auc <- performance(pred_object_test, measure = "auc")
 auc <- unlist(auc@y.values)
-auc # 0.7208526
+auc # 0.7195333
 
 # AUC >0.70 is a good sign of model's predictive power
 
