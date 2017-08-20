@@ -754,6 +754,8 @@ test_actual_attrition <- factor(ifelse(test$Attrition==1,"Yes","No"))
 
 
 table(test_actual_attrition,test_pred_attrition)
+test_conf1 <- confusionMatrix(test_pred_attrition,test_actual_attrition ,positive = "Yes")
+test_conf1
 #Sensitivity : 0.25000         
 #Specificity : 0.98329         
 #Pos Pred Value : 0.74667         
